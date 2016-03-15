@@ -1,0 +1,31 @@
+{
+    "name": "zitec/api-testing-extension",
+    "type": "behat-extension",
+    "description": "API testing extension for Behat",
+    "keywords": ["api", "test", "behat"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Bianca VADEAN",
+            "email": "bianca.vadean@zitec.com"
+        },
+        {
+            "name": "Marius BALTEANU",
+            "email": "marius.balteanu@zitec.com"
+        }
+    ],
+    "require": {
+        "behat/behat": "3.0.15",
+        "behat/mink": "1.6.1",
+        "behat/mink-extension": "2.1.0",
+        "behat/mink-goutte-driver": "1.1.0",
+        "phpunit/phpunit": "4.8.16",
+        "fzaninotto/faker": "1.5.0",
+        "nelmio/alice": "2.1.3"
+    },
+    "autoload": {
+        "psr-0": {
+            "Zitec\\ApiZitecExtension": "src/"
+        }
+    }
+}
