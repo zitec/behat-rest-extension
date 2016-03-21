@@ -8,7 +8,6 @@
 
 namespace Zitec\ApiZitecExtension\Context;
 
-
 use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\MinkExtension\Context\MinkContext;
 use Symfony\Component\Config\Definition\Exception\Exception;
@@ -16,6 +15,7 @@ use Zitec\ApiZitecExtension\Data\LoadParameters;
 use Zitec\ApiZitecExtension\Data\LoadData;
 use Behat\Mink\Driver\Goutte\Client;
 use Zitec\ApiZitecExtension\Util\TypeChecker;
+use Behat\Gherkin\Node\TableNode;
 
 class RestContext extends MinkContext implements SnippetAcceptingContext
 {
@@ -133,6 +133,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
         throw new \Exception("A file with data must be loaded before using this method.");
       }
       $data = $this->data->getDataForRequest($this->restObjectMethod, $dataSet);
+      $files =isset($data['files']) ? $data['files'] : [];
     }
     $this->queryString = $queryString;
     if (!empty($data['get'])) {
@@ -141,7 +142,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
     $this->setAuthHeaders();
     $client = $this->getSession()->getDriver()->getClient();
     $client->request(
-      strtoupper($this->restObjectMethod), $this->locatePath($this->queryString), $data['post']
+      strtoupper($this->restObjectMethod), $this->locatePath($this->queryString), $data['post'], $files
     );
 
     if ($this->debug == true) {
