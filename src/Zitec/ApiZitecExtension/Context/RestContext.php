@@ -127,6 +127,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
   {
     $data['get'] = array();
     $data['post'] = array();
+    $files = [];
 
     if ($dataSet) {
       if (!property_exists($this, 'data')) {
