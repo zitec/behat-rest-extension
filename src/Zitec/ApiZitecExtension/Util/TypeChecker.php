@@ -12,7 +12,6 @@ use DateTime;
 
 class TypeChecker
 {
-
     /**
      * @var array
      */
@@ -138,7 +137,7 @@ class TypeChecker
         } else {
             $currentValue = $current[$expectedKey];
             if (!array_key_exists($expectedKey, $current) || !is_array($currentValue)) {
-               return sprintf('There is no collection with the key: %s', $expectedKey);
+                return sprintf('There is no collection with the key: %s', $expectedKey);
             }
         }
 
@@ -181,12 +180,14 @@ class TypeChecker
         $length = strlen($string);
         $arguments = func_get_args();
         if (count($arguments) > 2) {
-
             $min = $arguments[1];
             $max = $arguments[2];
+            if (is_string($result = $this->checkNumericArguments($min, $max))) {
+                return $result;
+            }
 
             if (!$this->valueInInterval($length, $min, $max)) {
-                $message = sprintf("The string's (%s) should be between %d and %d", $string, $min, $max);
+                $message = sprintf("The string's length (%s) should be between %s and %s", $length, $min, $max);
             }
 
         } elseif (count($arguments) > 1) {
@@ -196,7 +197,7 @@ class TypeChecker
             $fixedLength = $arguments[1];
 
             if ($length != $fixedLength) {
-                $message = sprintf("The string's length(%s) is  not %d", $string, $length);
+                $message = sprintf("The string's length(%s) is  not %s", $length, $fixedLength);
             }
         }
         if (is_string($message)) {
@@ -231,7 +232,7 @@ class TypeChecker
             $max = $arguments[2];
 
             if (!$this->valueInInterval($int, $min, $max)) {
-                return sprintf('%d is not betweend %d and %d', $int, $min, $max);
+                return sprintf('%d is not betweend %s and %s', $int, $min, $max);
             }
         } elseif (count($arguments) > 1) {
             if (is_string($result = $this->checkNumericArguments($arguments[1]))) {
@@ -269,7 +270,7 @@ class TypeChecker
             $max = $arguments[2];
 
             if (!$this->valueInInterval($float, $min, $max)) {
-                return sprintf('%f is not betweend %d and %d.', $float, $min, $max);
+                return sprintf('%f is not betweend %s and %s.', $float, $min, $max);
             }
         } elseif (count($arguments) > 1) {
             if (is_string($result = $this->checkNumericArguments($arguments[1]))) {
@@ -303,7 +304,7 @@ class TypeChecker
             }
             $elements = $arguments[1];
             if (count($array) != $elements) {
-                return sprintf('%s should have %d elements.', json_encode($array), $elements);
+                return sprintf('%s have %d elements but it should have %d elements.', json_encode($array), count($array), $elements);
             }
         }
 
@@ -419,7 +420,7 @@ class TypeChecker
     }
 
     /**
-     * Checks the given arguments to be numeric.
+     * Checks the given arguments to be numeric or '*'.
      *
      * @return string
      */
@@ -427,28 +428,27 @@ class TypeChecker
     {
         $arguments = func_get_args();
         foreach ($arguments as $argument) {
-            if (empty($argument)) {
-                return 'Arguments given are not valid.';
-            }
-            if (!is_numeric($argument)) {
-                return sprintf('%s should be numeric.', $argument);
+            if (!is_numeric($argument) && trim($argument) !== '*') {
+                return sprintf("%s should be numeric or '*'.", $argument);
             }
         }
     }
 
     /**
      * Checks the value to be between min and max.
+     * The * represents an open interval.
      *
      * @param $value
-     * @param $min
-     * @param $max
+     * @param numeric $min
+     * @param numeric $max
      * @return bool
      */
     public function valueInInterval ($value, $min, $max)
     {
         if (is_numeric($min) && is_numeric($max)) {
             $condition = ($value >= $min && $value <= $max);
-
+        } elseif ($min == '*' && $max == '*'){
+            $condition = true;
         } elseif ($min == "*") {
             $condition = $value <= $max;
 
