@@ -12,7 +12,6 @@ use DateTime;
 
 class TypeChecker
 {
-
     /**
      * @var array
      */
@@ -181,7 +180,6 @@ class TypeChecker
         $length = strlen($string);
         $arguments = func_get_args();
         if (count($arguments) > 2) {
-
             $min = $arguments[1];
             $max = $arguments[2];
             if (is_string($result = $this->checkNumericArguments($min, $max))) {
@@ -306,7 +304,7 @@ class TypeChecker
             }
             $elements = $arguments[1];
             if (count($array) != $elements) {
-                return sprintf('%s should have %d elements.', json_encode($array), $elements);
+                return sprintf('%s have %d elements but it should have %d elements.', json_encode($array), count($array), $elements);
             }
         }
 
