@@ -144,7 +144,7 @@ class TypeChecker
         $response = $this->checkCollection($collectionInfo, $value, $current);
         if ($collectionInfo['name'] == '-') {
             $current = array();
-            $noMatch = empty($response) ? array() : $response;
+            empty($response) ? $noMatch = array() : $noMatch[] = $response;
         } else {
             unset($current[$collectionInfo['name']]);
             if (!empty($response)) {
@@ -489,6 +489,8 @@ class TypeChecker
      */
     public function valueInInterval ($value, $min, $max)
     {
+		$min = trim($min);
+        $max = trim($max);
         if (is_numeric($min) && is_numeric($max)) {
             $condition = ($value >= $min && $value <= $max);
         } elseif ($min == '*' && $max == '*'){
