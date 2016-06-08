@@ -139,11 +139,12 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
     $this->queryString = $queryString;
     if (!empty($data['get'])) {
       $this->queryString = trim($this->queryString, '/') . '/?' . http_build_query($data['get']);
+      $data['get'] = [];
     }
     $this->setAuthHeaders();
     $client = $this->getSession()->getDriver()->getClient();
     $client->request(
-      strtoupper($this->restObjectMethod), $this->locatePath($this->queryString), $data['post'], $files
+      strtoupper($this->restObjectMethod), $this->locatePath($this->queryString), $data[strtolower($this->restObjectMethod)], $files
     );
 
     if ($this->debug == true) {
