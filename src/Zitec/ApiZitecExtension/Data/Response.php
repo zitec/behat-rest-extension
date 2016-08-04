@@ -11,13 +11,4 @@ namespace Zitec\ApiZitecExtension\Data;
 
 class Response
 {
-  public $data = array();
-
-  /**
-   * @param array $data
-   */
-  public function setData ($data)
-  {
-    $this->data = $data;
-  }
 }

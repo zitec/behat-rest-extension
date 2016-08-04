@@ -11,11 +11,14 @@ namespace Zitec\ApiZitecExtension\Context;
 use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\MinkExtension\Context\MinkContext;
 use Symfony\Component\Config\Definition\Exception\Exception;
+use Zitec\ApiZitecExtension\Data\Data;
 use Zitec\ApiZitecExtension\Data\LoadParameters;
 use Zitec\ApiZitecExtension\Data\LoadData;
 use Behat\Mink\Driver\Goutte\Client;
+use Zitec\ApiZitecExtension\Data\Storage;
 use Zitec\ApiZitecExtension\Util\TypeChecker;
 use Behat\Gherkin\Node\TableNode;
+use Behat\Mink\Exception\ExpectationException;
 
 class RestContext extends MinkContext implements SnippetAcceptingContext
 {
@@ -35,6 +38,10 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
   protected $secret = false;
   protected $signatureMessage;
   protected static $storeResponse = array();
+  /**
+   * @var Storage
+   */
+  protected $storage;
   protected $defaultLocale = "ro_RO";
 
 
@@ -49,6 +56,8 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
       throw new \Exception("You must define your headers parameters in behat.yml.");
     }
     $this->setCredentials($this->params->authentication);
+    $this->storage = Storage::getInstance();
+    $this->data = Data::getInstance();
   }
 
   /**
@@ -83,7 +92,8 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
   public function iLoadDataFromFile($file)
   {
     $loader =  new LoadData($this->params->root_path);
-    $this->data = $loader->loadData($file, $this->defaultLocale);
+    $data = $loader->loadData($file, $this->defaultLocale);
+    $this->data->setData($data);
   }
 
 
@@ -125,8 +135,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
    */
   public function iRequest($queryString, $dataSet = false)
   {
-    $data['get'] = array();
-    $data['post'] = array();
+    $data[strtolower($this->restObjectMethod)] = array();
     $files = [];
 
     if ($dataSet) {
@@ -139,18 +148,19 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
     $this->queryString = $queryString;
     if (!empty($data['get'])) {
       $this->queryString = trim($this->queryString, '/') . '/?' . http_build_query($data['get']);
+      $data['get'] = [];
     }
     $this->setAuthHeaders();
     $client = $this->getSession()->getDriver()->getClient();
     $client->request(
-      strtoupper($this->restObjectMethod), $this->locatePath($this->queryString), $data['post'], $files
+        strtoupper($this->restObjectMethod), $this->locatePath($this->queryString), $data[strtolower($this->restObjectMethod)], $files
     );
 
     if ($this->debug == true) {
       print $this->getSession()->getPage()->getContent();
 
     }
-    $this->response = $this->getSession()->getPage()->getContent();
+    $this->storage->setLastResponse($this->getSession()->getPage()->getContent());
   }
 
 
@@ -178,19 +188,19 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
   {
     $token = @$this->params->login->token ?: 'user_id';
     $secret = @$this->params->login->secret ?: 'access_token';
-    $response = json_decode($this->response, true);
+    $response = json_decode($this->storage->getLastResponse(), true);
     if (empty($response)) {
-      throw new \Exception("Response was not JSON\n" . $this->response);
+      throw new \Exception("Response was not JSON\n" . $this->storage->getLastResponse());
     }
     if (isset($response[$token])) {
       $this->token = $response[$token];
     } else {
-      throw new \Exception("Response is missing '$token'\n" . $this->response);
+      throw new \Exception("Response is missing '$token'\n" . $this->storage->getLastResponse());
     }
     if (isset($response[$secret])) {
       $this->secret = $response[$secret];
     } else {
-      throw new \Exception("Response is missing '$secret'\n" . $this->response);
+      throw new \Exception("Response is missing '$secret'\n" . $this->storage->getLastResponse());
     }
   }
 
@@ -201,7 +211,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
   public function theResponseMatchExpectedStructure($dataSet = null)
   {
     $expectedResponse = $this->data->getResponseData($dataSet);
-    $response = is_array($this->response) ? $this->response : json_decode($this->response, true);
+    $response = is_array($this->storage->getLastResponse()) ? $this->storage->getLastResponse() : json_decode($this->storage->getLastResponse(), true);
     $checker = new TypeChecker();
     $checked = $checker->checkType($response, $expectedResponse);
     if(!empty($checked)) {
@@ -235,11 +245,11 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
   public function theResponseMatchTheExpectedResponse($dataSet = null)
   {
     $expectedResponse = $this->data->getResponseData($dataSet);
-    if ($this->response != $expectedResponse) {
-      $diffResponse = $this->array_diff_assoc_recursive($this->response, $expectedResponse);
-      $diffExpected = $this->array_diff_assoc_recursive($expectedResponse, $this->response);
+    if ($this->storage->getLastResponse() != $expectedResponse) {
+      $diffResponse = $this->array_diff_assoc_recursive($this->storage->getLastResponse(), $expectedResponse);
+      $diffExpected = $this->array_diff_assoc_recursive($expectedResponse, $this->storage->getLastResponse());
       $message = "The response doesn't meet the expected response. \nData received but not expected: " . json_encode($diffResponse)
-      . "\nData expected but not received: " . json_encode($diffExpected);
+          . "\nData expected but not received: " . json_encode($diffExpected);
       throw new \Exception($message);
     }
 
@@ -265,19 +275,19 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
 
   protected function checkJsonResponse()
   {
-    $data = json_decode($this->response, true);
+    $data = json_decode($this->storage->getLastResponse(), true);
     if (empty($data)) {
-      throw new \Exception("Response was not JSON\n" . $this->response);
+      throw new \Exception("Response was not JSON\n" . $this->storage->getLastResponse());
     }
-    $this->response = $data;
+    $this->storage->setLastResponse($data);
   }
 
   protected function checkXMLResponse ()
   {
     libxml_use_internal_errors(true);
-    $xmlResponse = simplexml_load_string($this->response);
+    $xmlResponse = simplexml_load_string($this->storage->getLastResponse());
     if ($xmlResponse === false) {
-      throw new \Exception("Response is not XML\n" . $this->response);
+      throw new \Exception("Response is not XML\n" . $this->storage->getLastResponse());
     }
   }
 
@@ -447,26 +457,50 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      * $responseKey is the key of the element from the response you want to save.
      * $varKey is the key of the array where you'll store the response
      */
-    $response = json_decode($this->response,true);
-    if(isset(RestContext::$storeResponse[$varKey]))
-    {
-      echo "The old value of " . $varKey . " was replaced.";
-    } else {
-      RestContext::$storeResponse[$varKey] = false;
-    }
-
-    RestContext::$storeResponse[$varKey] = $response[$responseKey];
+    $response = json_decode($this->storage->getLastResponse(),true);
+    $this->storage->storeValue($varKey, $response[$responseKey]);
   }
 
   /**
+   * The request should look like this: method/%d
+   *
    * @When /^I request "([^"]*)" using "([^"]*)"(?:| with dataset "([^"]*)")$/
    */
   public function iRequestUsingWithDataset($request, $varKey, $dataSet = null)
   {
-    // The request should look like this: method/%d
-    $param = RestContext::$storeResponse[$varKey];
+    $param = $this->storage->getValue($varKey);
     $queryString = sprintf($request, $param);
     $this->iRequest($queryString, $dataSet);
   }
 
+  /**
+   * Makes a request on the path given in the location header and checks the response status code.
+   *
+   * @Then I check location header to return :arg1
+   */
+  public function checkLocationHeader($status)
+  {
+    $locationHeader = $this->getSession()->getResponseHeader('Location');
+    $this->iSetTheRequestMethod('GET');
+    $this->iRequest($locationHeader);
+    if ($this->getSession()->getStatusCode() != $status) {
+      $message = sprintf('The resource created return %s status code but %s was expected.',$this->getSession()->getStatusCode(), $status);
+      throw new ExpectationException($message, $this->getSession()->getDriver());
+    }
+  }
+
+
+    /**
+     * @Given /^the response is empty$/
+     * @Given /^the response is empty (and with the appropriate status code)$/
+     */
+    public function theResponseIsEmpty($strictly = null)
+    {
+        if ($strictly !== null) {
+            $this->assertResponseStatus(204);
+        }
+        if ($this->response !== null) {
+            throw new \Exception("The content of the response is not empty!\n" . $this->response);
+        }
+    }
 }
