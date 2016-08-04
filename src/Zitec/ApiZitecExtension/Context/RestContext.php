@@ -469,4 +469,18 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
     $this->iRequest($queryString, $dataSet);
   }
 
+  /**
+   * @Given /^the response is empty$/
+   * @Given /^the response is empty (and with the appropriate status code)$/
+   */
+  public function theResponseIsEmpty($strictly = null)
+  {
+    if ($strictly !== null) {
+      $this->assertResponseStatus(204);
+    }
+    if ($this->response !== null) {
+      throw new \Exception("The content of the response is not empty!\n" . $this->response);
+    }
+  }
+
 }
