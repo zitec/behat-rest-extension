@@ -155,7 +155,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
 
 
   /**
-   * @Given /^the response is (JSON|XML)$/
+   * @Given /^the response is (JSON|XML|empty)$/
    */
   public function theResponseIsJson($responseType)
   {
@@ -165,6 +165,9 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
         break;
       case 'XML':
         $this->checkXMLResponse();
+        break;
+      case 'empty':
+        $this->theResponseIsEmpty();
         break;
       default:
         throw new \Exception("Invalid format for response type. Expected Json or XML");
@@ -470,14 +473,11 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
   }
 
   /**
-   * @Given /^the response is empty$/
-   * @Given /^the response is empty (and with the appropriate status code)$/
+   * Verify if the response field is populated and if yes throw exception
+   * @throws \Exception
    */
-  public function theResponseIsEmpty($strictly = null)
+  protected function theResponseIsEmpty()
   {
-    if ($strictly !== null) {
-      $this->assertResponseStatus(204);
-    }
     if ($this->response !== null) {
       throw new \Exception("The content of the response is not empty!\n" . $this->response);
     }
