@@ -459,13 +459,26 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
   }
 
   /**
-   * @When /^I request "([^"]*)" using "([^"]*)"(?:| with dataset "([^"]*)")$/
+   * The request should look like this: method/%d
+   * @When I request :request using :varKey with dataset :dataSet
+   * @When I request :request using :varKey
+   * @When I request :request with dataset :dataSet using:
+   * @When I request :request using:
    */
   public function iRequestUsingWithDataset($request, $varKey, $dataSet = null)
   {
-    // The request should look like this: method/%d
-    $param = RestContext::$storeResponse[$varKey];
-    $queryString = sprintf($request, $param);
+    if (is_a($varKey, '\Behat\Gherkin\Node\TableNode')) {
+      $params = array();
+      foreach ($varKey->getColumn(0) as $value) {
+        $params[] = $this->storage->getValue($value);
+      }
+      $queryString = vsprintf($request, $params);
+    }
+    else {
+      $param = $this->storage->getValue($varKey);
+      $queryString = sprintf($request, $param);
+    }
+
     $this->iRequest($queryString, $dataSet);
   }
 
