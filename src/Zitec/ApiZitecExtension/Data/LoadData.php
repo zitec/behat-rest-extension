@@ -10,7 +10,6 @@
 namespace Zitec\ApiZitecExtension\Data;
 
 use Nelmio\Alice\Fixtures\Parser\Methods\Yaml;
-use Nelmio\Alice\Fixtures\Loader;
 
 class LoadData
 {
@@ -37,7 +36,7 @@ class LoadData
         $yaml = new Yaml();
         $fileInfo = $this->checkFileFormat($file);
         $data = $yaml->parse($this->createAbsolutePath($fileInfo));
-        $loader = new Loader($defaultLocale, [], null);
+        $loader = new ZitecLoader($defaultLocale, [], null);
 
         if (array_key_exists('request', $data) && !empty($data['request']['Zitec\ApiZitecExtension\Data\Request'])) {
             $this->data['request'] = $loader->load($data['request']);
@@ -54,7 +53,7 @@ class LoadData
      * Check if the yml format was set
      * If not, add the extensions
      *
-     * @param string $fileexpression
+     * @param string $file
      * @return filename
      * */
     protected function checkFileFormat ($file)
@@ -103,7 +102,7 @@ class LoadData
 
         if (empty($data['get']) && empty($data['post'])) {
             $requestDataSet = (array)$requestData[$dataSet];
-            $data[$requestMethod] = $requestDataSet['data'];
+            $data[$requestMethod] = $requestDataSet;
         }
         // Set files for request.
         $data = $this->setFiles($data);
@@ -113,7 +112,7 @@ class LoadData
     }
 
     /**
-     * Create real path for files and set them unde $data['files'] key.
+     * Create real path for files and set them under $data['files'] key.
      *
      * @param $data array
      * @return array
@@ -166,7 +165,7 @@ class LoadData
             throw new \Exception("Dataset \"{$dataSet}\" not found in response section from the data file.");
         }
         $responseData = (array)$this->data['response'][$dataSet];
-        return $responseData['data'];
+        return $responseData;
     }
 
     public function getData ()

@@ -15,11 +15,11 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 class ApiExtension implements TestworkExtension
 {
-  /**
-   * You can modify the container here before it is dumped to PHP code.
-   *
-   * @param ContainerBuilder $container
-   */
+    /**
+     * You can modify the container here before it is dumped to PHP code.
+     *
+     * @param ContainerBuilder $container
+     */
     public function process (ContainerBuilder $container)
     {
         $config = $container->getParameter('suite.configurations');
@@ -27,28 +27,30 @@ class ApiExtension implements TestworkExtension
         foreach ($config as &$suites) {
             $contexts = &$suites['settings']['contexts'];
             foreach ($contexts as &$context) {
-                foreach($context as &$item) {
-                   $item['parameters']['root_path'] = '%paths.base%';
+                if (is_array($context)) {
+                    foreach($context as &$item) {
+                        $item['parameters']['root_path'] = '%paths.base%';
+                    }
                 }
             }
         }
         $container->setParameter('suite.configurations', $config);
     }
 
-  public function getConfigKey ()
-  {
-    return "zitecApiExtension";
-  }
+    public function getConfigKey ()
+    {
+        return "zitecApiExtension";
+    }
 
-  public function initialize (ExtensionManager $extensionManager)
-  {
-  }
+    public function initialize (ExtensionManager $extensionManager)
+    {
+    }
 
-  public function configure (ArrayNodeDefinition $builder)
-  {
-  }
+    public function configure (ArrayNodeDefinition $builder)
+    {
+    }
 
-  public function load (ContainerBuilder $container, array $config)
-  {
-  }
+    public function load (ContainerBuilder $container, array $config)
+    {
+    }
 }

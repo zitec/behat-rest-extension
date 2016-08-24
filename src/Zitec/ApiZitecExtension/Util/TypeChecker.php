@@ -40,20 +40,12 @@ class TypeChecker
     public function checkType (array $current, array $expected)
     {
         $noMatch = array();
-        foreach ($expected as $key => $value) {
-            // Manage the flow in case if collections.
-            if (substr($key, 0, strpos($key, '(')) == "__collection") {
-                $response = $this->checkCollection($key, $value, $current);
-                preg_match_all("/\((.*?)\)/u", $key, $collectionArgs);
-                $collectionArgs = explode(',', $collectionArgs[1][0]);
-                if ($collectionArgs[0] == '-') {
-                    $current = array();
-                    $noMatch = empty($response) ? array() : $response;
-                } else {
-                    unset($current[$collectionArgs[0]]);
-                    if (!empty($response)) {
-                        $noMatch[$collectionArgs[0]] = $response;
-                    }
+        foreach ($expected as $key => &$value) {
+            // Manage the flow in case of collections.
+            if (($key == "__collection") || substr($key, 0, strpos($key, '(')) == "__collection") {
+                $collectionErr = $this->manageCollection($expected, $key, $current);
+                if (!empty($collectionErr)) {
+                    $noMatch = array_merge($noMatch, $collectionErr);
                 }
                 continue;
             }
@@ -84,7 +76,6 @@ class TypeChecker
             // Check for null option.
             if ($pos = strpos($value, '|')) {
                 $type = strpos($type, '|') ? trim(substr($value, 0, $pos)) : $type;
-                $option = trim(substr($value, $pos + 1));
                 if (is_null($current[$key])) {
                     unset($current[$key]);
                     continue;
@@ -111,23 +102,76 @@ class TypeChecker
         }
     }
 
+    /**
+     * Parse the collection info in both situations
+     * (when the collection is root in dataset and when the collection is a branch in dataset)
+     *
+     * @param $expected
+     * @param $key
+     * @param $current
+     * @return array|string
+     */
+    public function manageCollection(&$expected, $key, &$current)
+    {
+        $value = $expected[$key];
+        $noMatch = array();
+        $collectionInfo = [];
+        /**
+         * Handle the situation when the collection is root and it's saved as __collection
+         * and the info about collection is stored in __collection_info.
+         */
+        if ($key == '__collection') {
+            if (empty($expected['__collection_info'])) {
+                $noMatch[$key] = 'There is no info about the collection.';
+                unset($expected[$key]);
+                return $noMatch;
+            }
+            $collectionInfo = $expected['__collection_info'];
+            unset($expected['__collection_info']);
+        /**
+         * Handle collections when they are saved as __collection(key, min, max)
+         */
+        } elseif (substr($key, 0, strpos($key, '(')) == "__collection") {
+            preg_match_all("/\((.*?)\)/u", $key, $collectionArgs);
+            $collectionArgs = explode(',', $collectionArgs[1][0]);
+            $collectionInfo = [
+                'name' => $collectionArgs[0],
+                'min' => isset($collectionArgs[1]) ? isset($collectionArgs[1]) : null,
+                'max' => isset($collectionArgs[2]) ? isset($collectionArgs[2]) : null,
+            ];
+        }
+
+        $response = $this->checkCollection($collectionInfo, $value, $current);
+        if ($collectionInfo['name'] == '-') {
+            $current = array();
+            empty($response) ? $noMatch = array() : $noMatch[] = $response;
+        } else {
+            unset($current[$collectionInfo['name']]);
+            if (!empty($response)) {
+                $noMatch[$collectionInfo['name']] = $response;
+            }
+        }
+        return $noMatch;
+    }
+
 
     /**
+     * A collection can be defined as: __collection(key, min, max).
+     * Min and max represent the number of elements expected in collection and they are optional.
+     * To represent an open range can be used "*" instead of min/max.
+     * If the collection has no key use "-" .
+     *
      * Checks each element in a collection to match the expected element structure.
      * It also checks the number if elements in the collection if the expected number of elements is set.
      *
-     * @param $collectionKey
+     * @param $collectionInfo
      * @param array $expectedValue
      * @param array $current
      * @return array|string
      */
-    public function checkCollection ($collectionKey, array $expectedValue, array $current)
+    public function checkCollection ($collectionInfo, array $expectedValue, array $current)
     {
-        preg_match_all("/\((.*?)\)/u", $collectionKey, $arguments);
-        $arguments = explode(',', $arguments[1][0]);
-        $arguments = array_map('trim', $arguments);
-
-        $expectedKey = $arguments[0];
+        $expectedKey = $collectionInfo['name'];
 
         if ($expectedKey == '-') {
             $currentValue = $current;
@@ -141,12 +185,13 @@ class TypeChecker
             }
         }
 
-        if(isset($arguments[1]) && isset($arguments[2])) {
-            $min = $arguments[1];
-            $max = $arguments[2];
+        if(isset($collectionInfo['min']) && isset($collectionInfo['max'])) {
+            $min = $collectionInfo['min'];
+            $max = $collectionInfo['max'];
             $elements = count($currentValue);
             if (!$this->valueInInterval($elements, $min, $max)) {
-                $message = sprintf('The number of elements in collection ' . $expectedKey . ' is ' . $elements . ' but should be between ' . $min . ' and ' . $max);
+                $message = sprintf('The number of elements in collection ' . $expectedKey . ' is '
+                    . $elements . ' but should be between ' . $min . ' and ' . $max);
                 return $message;
             }
         }
@@ -156,8 +201,7 @@ class TypeChecker
                 return $result;
             }
         }
-
-
+        return null;
     }
 
     /**
@@ -166,7 +210,7 @@ class TypeChecker
      *  The second argument is considered minimum value and the third is considered the maximum.
      *  If there are only two parameters it checks the string length to be exactly that value.
      *
-     * @param $string  The string to be checked
+     * @param string $string  The string to be checked
      * @return bool|string
      * @throws \Exception
      */
@@ -439,12 +483,14 @@ class TypeChecker
      * The * represents an open interval.
      *
      * @param $value
-     * @param numeric $min
-     * @param numeric $max
+     * @param string $min numeric
+     * @param string $max numeric
      * @return bool
      */
     public function valueInInterval ($value, $min, $max)
     {
+		$min = trim($min);
+        $max = trim($max);
         if (is_numeric($min) && is_numeric($max)) {
             $condition = ($value >= $min && $value <= $max);
         } elseif ($min == '*' && $max == '*'){
@@ -459,5 +505,4 @@ class TypeChecker
         }
         return $condition;
     }
-
 }
