@@ -478,7 +478,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
    */
   protected function theResponseIsEmpty()
   {
-    if (!empty($this->response)) {
+    if ($this->response !== null && $this->response !== "") {
       throw new \Exception("The content of the response is not empty!\n" . $this->response);
     }
   }
