@@ -170,7 +170,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
         $this->theResponseIsEmpty();
         break;
       default:
-        throw new \Exception("Invalid format for response type. Expected Json or XML");
+        throw new \Exception("Invalid format for response type. Expected JSON, XML or empty");
     }
   }
 
