@@ -19,6 +19,7 @@ use Zitec\ApiZitecExtension\Data\Storage;
 use Zitec\ApiZitecExtension\Util\TypeChecker;
 use Behat\Gherkin\Node\TableNode;
 use Behat\Mink\Exception\ExpectationException;
+use PHPUnit_Framework_Assert;
 
 class RestContext extends MinkContext implements SnippetAcceptingContext
 {
@@ -282,13 +283,24 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
         return $difference;
     }
 
+    /**
+     *  Check the last response to be JSON.
+     *  If the response is valid JSON the decoded response is stored.
+     *
+     * @throws \UnexpectedValueException
+     */
     protected function checkJsonResponse()
     {
-        $data = json_decode($this->storage->getLastResponse(), true);
-        if (empty($data)) {
-            throw new \Exception("Response was not JSON\n" . $this->storage->getLastResponse());
+        if (is_string($this->storage->getLastResponse())) {
+            $decodedResponse = json_decode($this->storage->getLastResponse(), true);
+            if (json_last_error()) {
+                throw new \UnexpectedValueException("Response is not valid JSON: \n" .json_encode($this->storage->getLastResponse() . ' (' . json_last_error_msg() . ')'));
+            }
+        } else {
+            throw new \UnexpectedValueException('Response is not valid JSON: ' . json_encode($this->storage->getLastResponse()));
         }
-        $this->storage->setLastResponse($data);
+
+        $this->storage->setLastResponse($decodedResponse);
     }
 
     protected function checkXMLResponse()
