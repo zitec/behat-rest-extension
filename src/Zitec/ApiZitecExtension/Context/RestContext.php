@@ -147,7 +147,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
         }
         $this->queryString = $queryString;
         if (!empty($data['get'])) {
-            $this->queryString = trim($this->queryString, '/') . '/?' . http_build_query($data['get']);
+            $this->queryString = trim($this->queryString, '/') . '/?' . http_build_query($data['get'], null, '&', PHP_QUERY_RFC3986);
             $data['get'] = [];
         }
         $this->setAuthHeaders();
