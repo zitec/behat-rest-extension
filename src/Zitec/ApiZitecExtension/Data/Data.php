@@ -21,6 +21,9 @@ class Data
     {
     }
 
+    /**
+     * @return Data
+     */
     static function getInstance()
     {
         if (null === self::$instance) {

@@ -61,6 +61,7 @@ class Storage
     {
         if (isset($this->container[$key])) {
             return true;
+
         } else {
             return false;
         }
