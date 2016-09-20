@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: bianca.vadean
- * Date: 8/31/2016
- * Time: 3:10 PM
- */
 
 namespace Zitec\ApiZitecExtension\Context;
 
@@ -17,6 +11,7 @@ use Zitec\ApiZitecExtension\Data\LoadData;
 use Zitec\ApiZitecExtension\Data\LoadParameters;
 use Zitec\ApiZitecExtension\Data\Storage;
 use Zitec\ApiZitecExtension\Services\Request;
+use Zitec\ApiZitecExtension\Services\Response;
 
 class RestContext_new extends MinkContext implements SnippetAcceptingContext
 {
@@ -41,6 +36,11 @@ class RestContext_new extends MinkContext implements SnippetAcceptingContext
      */
     protected $storage;
 
+    /**
+     * @var Response
+     */
+    protected $response;
+
 
     /**
      * RestContext_new constructor.
@@ -48,7 +48,7 @@ class RestContext_new extends MinkContext implements SnippetAcceptingContext
      */
     public function __construct(array $parameters)
     {
-        $this->parameters = new LoadParameters($parameters); // TODO decide if you keep or delete the LoadParameters class
+        $this->parameters = new LoadParameters($parameters); // TODO keep or delete the LoadParameters class??
         $this->request = new Request();
         $this->storage = Storage::getInstance();
         $this->data = Data::getInstance();
@@ -118,7 +118,36 @@ class RestContext_new extends MinkContext implements SnippetAcceptingContext
      */
     public function iSetTheApikeyAndApiuser($apiKey, $apiClient)
     {
+        //TODO rename method!
         $this->request->getHeaders()->setApiClient($apiClient);
         $this->request->getHeaders()->setApiKey($apiKey);
+    }
+
+    /**
+     * @Given I set the following :headers empty
+     * @Given I remove the following headers :headers
+     *
+     * Remove the specified headers. They should be coma separated.
+     *
+     * @param string $headers
+     */
+    public function iRemoveAnAuthHeader($headers)
+    {
+        $toRemove = array_map('trim', explode(',' ,$headers));
+        foreach ($toRemove as $header) {
+            $this->request->getHeaders()->removeHeader($header);
+        }
+    }
+
+    /**
+     * @Given I modify the request time with :time
+     *
+     * Set the time difference.
+     *
+     * @param string $time
+     */
+    public function iAddToRequestTime($time)
+    {
+        $this->request->getHeaders()->setTimeDifference($time);
     }
 }
