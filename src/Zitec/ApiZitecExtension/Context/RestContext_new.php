@@ -6,6 +6,7 @@ namespace Zitec\ApiZitecExtension\Context;
 use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Gherkin\Node\TableNode;
 use Behat\MinkExtension\Context\MinkContext;
+use Goutte\Client;
 use Zitec\ApiZitecExtension\Data\Data;
 use Zitec\ApiZitecExtension\Data\LoadData;
 use Zitec\ApiZitecExtension\Data\LoadParameters;
@@ -116,7 +117,7 @@ class RestContext_new extends MinkContext implements SnippetAcceptingContext
      * @param $apiKey
      * @param $apiClient
      */
-    public function iSetTheApikeyAndApiuser($apiKey, $apiClient)
+    public function iSetTheApiKeyAndApiUser($apiKey, $apiClient)
     {
         //TODO rename method!
         $this->request->getHeaders()->setApiClient($apiClient);
@@ -150,4 +151,23 @@ class RestContext_new extends MinkContext implements SnippetAcceptingContext
     {
         $this->request->getHeaders()->setTimeDifference($time);
     }
+
+    /**
+     * @When I request :queryString
+     * @When I request :queryString with dataset :dataSet
+     *
+     * @param $queryString
+     * @param $dataSet
+     */
+    public function iRequest($queryString, $dataSet = null)
+    {
+        $data = $this->data->getDataForRequest($this->request->getRequestMethod(), $dataSet);
+        /**
+         * @var Client
+         */
+        $client = $this->getSession()->getDriver()->getClient();
+        $this->request->request($queryString, $data, $client);
+
+    }
+
 }

@@ -65,4 +65,19 @@ class Request
         $this->headers->removeHeader($token);
         $client->removeHeader($token);
     }
+
+    /**
+     * @param string $queryString
+     * @param array $data
+     * @param Client $client
+     */
+    public function request($queryString, array $data, Client $client)
+    {
+        $files = isset($data['files']) ? $data['files'] : [];
+        if (!empty($data['get'])) {
+            $queryString = trim($queryString, '/') . '/?' . http_build_query($data['get'],  null, '&', PHP_QUERY_RFC3986);
+        }
+
+//        $client->request();
+    }
 }

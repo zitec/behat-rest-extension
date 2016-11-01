@@ -60,8 +60,8 @@ class Headers
                     $this->headers[$key] = $date;
                     break;
                 case 'apiClient':
-                    if (isset($this->credentials['apiClient'])) {
-                        $this->headers[$key] = $this->credentials['apiClient'];
+                    if (isset($this->apiClient)) {
+                        $this->headers[$key] = $this->apiClient;
                     } else {
                         throw new \Exception(' "apiKey" not set in the authentication section.');
                     }
