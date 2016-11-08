@@ -13,9 +13,9 @@ class Data
 {
     private static $instance = null;
     /**
-     * @var LoadData $container
+     * @var LoadData $dataLoaded
      */
-    private $data = null;
+    private $dataLoaded= null;
 
     private function __construct()
     {
@@ -32,28 +32,28 @@ class Data
         return self::$instance;
     }
     
-    public function setData($data)
+    public function setDataLoaded($dataLoaded)
     {
-        $this->data = $data;
+        $this->dataLoaded = $dataLoaded;
     }
     
-    public function getData()
+    public function getDataLoaded()
     {
-        return $this->data;
+        return $this->dataLoaded;
     }
     
-    public function addDataToDataset($dataset, $values)
+    public function addDataToDataSet($dataSet, $values)
     {
-        $this->data->addDataToDataset($dataset, $values);
+        $this->dataLoaded->addDataToDataSet($dataSet, $values);
     }
     
-    public function getDataForRequest($method, $dataset)
+    public function getDataForRequest($method, $dataSet)
     {
-        return $this->data->getDataForRequest($method, $dataset);
+        return $this->dataLoaded->getDataForRequest($method, $dataSet);
     }
     
-    public function getResponseData($dataset)
+    public function getResponseData($dataSet)
     {
-        return $this->data->getResponseData($dataset);
+        return $this->dataLoaded->getResponseData($dataSet);
     }
 }

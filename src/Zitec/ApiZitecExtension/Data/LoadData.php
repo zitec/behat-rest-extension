@@ -54,7 +54,7 @@ class LoadData
      * If not, add the extensions
      *
      * @param string $file
-     * @return filename
+     * @return string filename
      * */
     protected function checkFileFormat ($file)
     {
@@ -82,6 +82,12 @@ class LoadData
         return $path;
     }
 
+    /**
+     * @param $requestMethod
+     * @param $dataSet
+     * @return array
+     * @throws \Exception
+     */
     public function getDataForRequest ($requestMethod, $dataSet)
     {
         $requestData = $this->data['request'];
@@ -148,7 +154,7 @@ class LoadData
         return $data;
     }
 
-    public function addDataToDataset ($dataSet, array $values)
+    public function addDataToDataSet ($dataSet, array $values)
     {
         $set = array_merge((array)$this->data['request'][$dataSet], $values);
         $this->data['request'][$dataSet] = (object)$set;
