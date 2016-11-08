@@ -141,6 +141,11 @@ class TypeChecker
             ];
         }
 
+        if (!is_array($value)) {
+            $noMatch[$collectionInfo['name']] = "The collection must be array.";
+            return $noMatch;
+        }
+
         $response = $this->checkCollection($collectionInfo, $value, $current);
         if ($collectionInfo['name'] == '-') {
             $current = array();
@@ -194,6 +199,16 @@ class TypeChecker
                     . $elements . ' but should be between ' . $min . ' and ' . $max);
                 return $message;
             }
+        }
+
+        if (empty($currentValue) && !empty($expectedValue)) {
+            $noMatch = [];
+            foreach ($expectedValue as $key => $value) {
+                if (!array_key_exists($key, $currentValue)) {
+                    $noMatch[$key] = "Expected key not found in response.";
+                }
+            }
+            return $noMatch;
         }
 
         foreach ($currentValue as $key => $value) {
