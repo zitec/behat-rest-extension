@@ -42,7 +42,7 @@ class TypeChecker
         $noMatch = [];
         foreach ($expected as $key => &$value) {
             // Manage the flow in case of collections.
-            if (($key == "__collection") || substr($key, 0, strpos($key, '(')) == "__collection") {
+            if (($key === "__collection") || substr($key, 0, strpos($key, '(')) === "__collection") {
                 $collectionErr = $this->manageCollection($expected, $key, $current);
                 if (!empty($collectionErr)) {
                     $noMatch = array_merge($noMatch, $collectionErr);
