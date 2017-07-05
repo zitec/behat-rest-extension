@@ -1,12 +1,18 @@
 <?php
 
-namespace Zitec\ApiZitecExtension\Services;
+namespace Zitec\ApiZitecExtension\Services\Response;
 
-use Zitec\ApiZitecExtension\Services\JsonResponse;
-use Zitec\ApiZitecExtension\Services\XMLResponse;
-
+/**
+ * Class ResponseFactory
+ *
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
+ */
 class ResponseFactory
 {
+    /**
+     * @var array
+     */
     protected $responseType = [
         'isXml' => 'XmlResponse',
         'isJson' => 'JsonResponse',
@@ -18,12 +24,12 @@ class ResponseFactory
      * @return Response
      * @throws \Exception
      */
-    public function createResponse($responseString, $headers)
+    public function createResponse($responseString, array $headers)
     {
         foreach ($this->responseType as $type => $class) {
             $validType = call_user_func(array($this, $type), $responseString);
             if ($validType) {
-                $className = 'Zitec\ApiZitecExtension\Services\\' . $class;
+                $className = 'Zitec\ApiZitecExtension\Services\Response\\' . $class;
                 return new $className($responseString, $headers);
             }
         }

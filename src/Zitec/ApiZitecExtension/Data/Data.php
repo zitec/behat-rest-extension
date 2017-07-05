@@ -1,22 +1,27 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: bianca.vadean
- * Date: 6/16/2016
- * Time: 12:04 PM
- */
 
 namespace Zitec\ApiZitecExtension\Data;
 
-
+/**
+ * Class Data
+ *
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
+ */
 class Data
 {
+    /**
+     * @var Data|null
+     */
     private static $instance = null;
     /**
      * @var LoadData $dataLoaded
      */
-    private $dataLoaded= null;
+    private $dataLoaded = null;
 
+    /**
+     * Data constructor.
+     */
     private function __construct()
     {
     }
@@ -31,27 +36,46 @@ class Data
         }
         return self::$instance;
     }
-    
-    public function setDataLoaded($dataLoaded)
+
+    /**
+     * @param LoadData $dataLoaded
+     */
+    public function setDataLoaded(LoadData $dataLoaded)
     {
         $this->dataLoaded = $dataLoaded;
     }
-    
+
+    /**
+     * @return LoadData
+     */
     public function getDataLoaded()
     {
         return $this->dataLoaded;
     }
-    
-    public function addDataToDataSet($dataSet, $values)
+
+    /**
+     * @param string $dataSet
+     * @param array $values
+     */
+    public function addDataToDataSet($dataSet, array $values)
     {
         $this->dataLoaded->addDataToDataSet($dataSet, $values);
     }
-    
+
+    /**
+     * @param string $method
+     * @param string $dataSet
+     * @return array
+     */
     public function getDataForRequest($method, $dataSet)
     {
         return $this->dataLoaded->getDataForRequest($method, $dataSet);
     }
-    
+
+    /**
+     * @param string $dataSet
+     * @return array
+     */
     public function getResponseData($dataSet)
     {
         return $this->dataLoaded->getResponseData($dataSet);

@@ -1,6 +1,6 @@
 <?php
 
-namespace Zitec\ApiZitecExtension\Services;
+namespace Zitec\ApiZitecExtension\Services\Auth;
 
 
 abstract class Authentication

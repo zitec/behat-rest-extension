@@ -1,6 +1,6 @@
 <?php
 
-namespace Zitec\ApiZitecExtension\Services;
+namespace Zitec\ApiZitecExtension\Services\Response;
 
 
 use Zitec\ApiZitecExtension\Util\TypeChecker;
@@ -68,7 +68,7 @@ class JsonResponse implements Response
      * Returns a response headers by given $name.
      * Returns null if there is no header with that given name.
      *
-     * @param $name
+     * @param string $name
      * @return string|null
      */
     public function getResponseHeader($name)
@@ -82,14 +82,14 @@ class JsonResponse implements Response
     /**
      * Checks if the response is empty.
      *
-     * @throws \Exception
+     * @return bool
      */
     public function isEmpty()
     {
         if (!empty($this->response)) {
-            $response = !is_string($this->response) ? json_encode($this->response) : $this->response;
-            throw new \Exception("The content of the response is not empty!\n" . $response);
+            return false;
         }
+        return true;
     }
 
     /**
@@ -98,7 +98,7 @@ class JsonResponse implements Response
      * @param array $expectedStructure
      * @throws \Exception
      */
-    public function matchStructure($expectedStructure)
+    public function matchStructure(array $expectedStructure)
     {
         $checker = new TypeChecker();
         $checked = $checker->checkType($this->response, $expectedStructure);
@@ -114,7 +114,7 @@ class JsonResponse implements Response
      * @param array $expectedResponse
      * @throws \Exception
      */
-    public function matchResponse($expectedResponse)
+    public function matchResponse(array $expectedResponse)
     {
         if ($this->response != $expectedResponse) {
             $diffResponse = $this->responseDiff($this->response, $expectedResponse);
@@ -164,5 +164,52 @@ class JsonResponse implements Response
     public function getType()
     {
         return "json";
+    }
+
+
+    /**
+     * Walk through the response to retrieve the specific key given as $path.
+     *
+     * @param string $path
+     * @return mixed
+     * @throws \Exception
+     */
+    public function getItem($path)
+    {
+        $sqBracket = strpos($path, '[');
+        if ($sqBracket !== false) {
+            $indexes = $this->getIndexOutOfString($path);
+            $response = $this->response;
+            foreach ($indexes as $index) {
+                if (isset($response[$index])) {
+                    $response = $response[$index];
+                    continue;
+                }
+                throw new \Exception(sprintf('Key %s not found in response.', $path));
+            }
+            return $response;
+
+        } else {
+            if (!isset($response[$path])) {
+                throw new \Exception(sprintf('Key %s not found in response.', $path));
+            }
+            return $response[$path];
+        }
+    }
+
+    /**
+     * @param string $string
+     * @return array
+     */
+    protected function getIndexOutOfString($string)
+    {
+        $indexes = array_map(
+            function ($item) {
+                return trim($item, ']');
+            },
+            explode('[', $string)
+        );
+
+        return $indexes;
     }
 }

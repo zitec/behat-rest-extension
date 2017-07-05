@@ -1,15 +1,15 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: bianca.vadean
- * Date: 6/15/2016
- * Time: 3:20 PM
- */
 
 namespace Zitec\ApiZitecExtension\Data;
 
 use Behat\Testwork\Suite\Exception\ParameterNotFoundException;
 
+/**
+ * Class Storage
+ *
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
+ */
 class Storage
 {
     private static $instance = null;
@@ -17,13 +17,22 @@ class Storage
      * @var array $container
      */
     private $container = [];
-    
+
+    /**
+     * @var mixed
+     */
     private $lastResponse;
 
+    /**
+     * Storage constructor.
+     */
     private function __construct()
     {
     }
 
+    /**
+     * @return null|Storage
+     */
     static function getInstance()
     {
         if (null === self::$instance) {
@@ -33,8 +42,8 @@ class Storage
     }
 
     /**
-     * @param $key string
-     * @param $value string
+     * @param string $key
+     * @param string $value
      */
     public function storeValue($key, $value)
     {
@@ -42,7 +51,7 @@ class Storage
     }
 
     /**
-     * @param $key string
+     * @param string $key
      * @return mixed
      */
     public function getValue($key)
@@ -50,21 +59,21 @@ class Storage
         if(isset($this->container[$key])) {
             return $this->container[$key];
         }
+
         throw new ParameterNotFoundException("No parameter $key found in storage.", "Element not found in storage", $key);
     }
 
     /**
-     * @param $key string
+     * @param string $key
      * @return bool
      */
     public function valueExists($key)
     {
         if (isset($this->container[$key])) {
             return true;
-
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     /**
@@ -82,6 +91,4 @@ class Storage
     {
         $this->lastResponse = $lastResponse;
     }
-    
-    
 }

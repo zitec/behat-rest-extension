@@ -4,6 +4,12 @@ namespace Zitec\ApiZitecExtension\Services;
 
 use Behat\Mink\Driver\Goutte\Client;
 
+/**
+ * Class Request
+ *
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
+ */
 class Request
 {
     /**
@@ -16,6 +22,9 @@ class Request
      */
     protected $headers;
 
+    /**
+     * Request constructor.
+     */
     public function __construct()
     {
         $this->headers = new Headers();
@@ -48,7 +57,7 @@ class Request
     /**
      * @param Headers $headers
      */
-    public function setHeaders($headers)
+    public function setHeaders(Headers $headers)
     {
         $this->headers = $headers;
     }
@@ -62,17 +71,23 @@ class Request
      */
     public function resetTokens(Client $client)
     {
-        $headers = $this->getHeaders()->getHeaders();
+        $initialHeaders = $this->getHeaders()->getInitialHeaders();
         $tokenHeader = "";
-        if (isset($this->getHeaders()->getAuthParams()['token'])) {
+        $authParams = $this->getHeaders()->getAuthParams();
+        if (isset($authParams['token'])) {
             $tokenName = $this->getHeaders()->getAuthParams()['token'];
+            $authParams['token'] = false;
+            $authParams['secret'] = false;
+            $this->getHeaders()->setAuthParams($authParams);
         } else {
             throw new \Exception("There is no token to reset.");
         }
-        foreach ($headers as $key => $value) {
-            if ($value ==  $tokenName) {
-                $tokenHeader = $key;
-                break;
+        if (!empty($initialHeaders)) {
+            foreach ($initialHeaders as $key => $value) {
+                if ($value == $tokenName) {
+                    $tokenHeader = $key;
+                    break;
+                }
             }
         }
         $this->headers->removeHeader($tokenHeader);
@@ -89,14 +104,15 @@ class Request
     {
         $files = $this->getFiles($data);
         if (!empty($data['get'])) {
-            $queryString = trim($queryString, '/') . '/?' . http_build_query($data['get'], null, '&',
+            $queryString = '?' . http_build_query($data['get'], null, '&',
                     PHP_QUERY_RFC3986);
         }
 
         $this->headers->generateHeaders($this->requestMethod, $queryString);
         $this->setClientHeaders($client);
         $uri = $this->locatePath($baseUrl, $queryString);
-        $client->request($this->requestMethod, $uri, $data, $files);
+        $httpVerb = strtolower($this->requestMethod);
+        $client->request($this->requestMethod, $uri, $data[$httpVerb], $files);
     }
 
     /**
@@ -122,6 +138,7 @@ class Request
         if (isset($data['files'])) {
             return $data['files'];
         }
+
         return [];
     }
 

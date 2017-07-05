@@ -1,6 +1,6 @@
 <?php
 
-namespace Zitec\ApiZitecExtension\Services;
+namespace Zitec\ApiZitecExtension\Services\Auth;
 
 
 class TokenAuthentication extends Authentication
@@ -33,6 +33,10 @@ class TokenAuthentication extends Authentication
      * @var string
      */
     protected $timeDifference;
+    /**
+     * @var string
+     */
+    protected $signatureMessage;
 
     public function __construct($apiKey, $apiClient, $token, $secret, $httpVerb, $queryString, $timeDifference)
     {
@@ -52,7 +56,7 @@ class TokenAuthentication extends Authentication
         $authHeaders['date'] = $this->date;
         $authHeaders['apiClient'] = $this->apiClient;
         $authHeaders['sha1'] = $this->getSignatureString();
-        $authHeaders['token'] = $this;
+        $authHeaders['token'] = $this->token;
         return $authHeaders;
     }
 
@@ -70,5 +74,4 @@ class TokenAuthentication extends Authentication
         $this->signatureMessage = $message;
         return $this->hmacSha1($this->apiKey, $message);
     }
-
 }

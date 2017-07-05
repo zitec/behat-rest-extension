@@ -2,8 +2,14 @@
 
 namespace Zitec\ApiZitecExtension\Services;
 
+use Zitec\ApiZitecExtension\Services\Auth\AuthenticationFactory;
 
-
+/**
+ * Class Headers
+ *
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
+ */
 class Headers
 {
     /**
@@ -15,18 +21,18 @@ class Headers
      * All headers
      * @var array
      */
-    protected $initialHeaders;
+    protected $initialHeaders = [];
 
     /**
      * @var array
      */
-    protected $authParams;
+    protected $authParams = [];
 
     /**
      * All headers with appropriate values
      * @var array
      */
-    protected $headers;
+    protected $headers = [];
 
 
     /**
@@ -34,6 +40,12 @@ class Headers
      */
     public function setAuthParams(array $authentication)
     {
+        if (isset($authentication['token']) && !isset($authentication['tokenValue'])) {
+            $authentication['tokenValue'] = false;
+        }
+        if (isset($authentication['secret']) && !isset($authentication['secretValue'])) {
+            $authentication['secretValue'] = false;
+        }
         $this->authParams = $authentication;
     }
 
@@ -44,8 +56,6 @@ class Headers
     {
         return $this->authParams;
     }
-
-
 
     /**
      * @param string $method
@@ -71,6 +81,10 @@ class Headers
      */
     public function getAuth($httpVerb, $queryString)
     {
+        if (empty($this->authParams)) {
+            return [];
+        }
+
         if (isset($this->authParams['auth_type'])) {
             $type = $this->authParams['auth_type'];
         } else {
@@ -78,6 +92,7 @@ class Headers
         }
         $authFactory = new AuthenticationFactory();
         $auth = $authFactory->createAuth($type, $this->authParams, $httpVerb, $queryString, $this->timeDifference);
+
         return $auth->getAuthHeaders();
     }
 
@@ -108,7 +123,7 @@ class Headers
 
     /**
      * Remove header with given key.
-     * Will remove the header both from $this->initialHeaders and $this->headers (headers after processing)
+     * Will remove the header both from initialHeaders and headers (headers after processing)
      *
      * @param string $name
      */

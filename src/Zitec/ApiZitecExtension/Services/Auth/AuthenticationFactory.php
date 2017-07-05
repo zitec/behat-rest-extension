@@ -1,13 +1,21 @@
 <?php
 
-namespace Zitec\ApiZitecExtension\Services;
+namespace Zitec\ApiZitecExtension\Services\Auth;
 
-
+/**
+ * Class AuthenticationFactory
+ *
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
+ */
 class AuthenticationFactory
 {
+    /**
+     * @var array
+     */
     protected $authType = [
         'token' => 'createTokenAuth',
-        'key' => 'createKeyAuth',
+        'key'   => 'createKeyAuth',
     ];
 
     /**
@@ -22,7 +30,14 @@ class AuthenticationFactory
     public function createAuth($authType, $parameters, $httpVerb, $queryString, $timeDifference)
     {
         if (isset($this->authType[$authType])) {
-            $auth = call_user_func([$this, $this->authType[$authType]], $parameters, $httpVerb, $queryString, $timeDifference);
+            $auth = call_user_func(
+                [$this, $this->authType[$authType]],
+                $parameters,
+                $httpVerb,
+                $queryString,
+                $timeDifference
+            );
+
             return $auth;
         }
         throw new \Exception("The registered authentication type ($authType) is not available.");
@@ -30,8 +45,9 @@ class AuthenticationFactory
 
     /**
      * @param array $parameters
-     * @param String $httpVerb
-     * @param String $queryString
+     * @param string $httpVerb
+     * @param string $queryString
+     * @param string $timeDifference
      * @return Authentication
      * @throws \Exception
      */
@@ -54,13 +70,13 @@ class AuthenticationFactory
             $error[] = 'apiClient';
         }
 
-        if (isset($parameters['token'])) {
-            $token = $parameters['token'];
+        if (isset($parameters['tokenValue'])) {
+            $token = $parameters['tokenValue'];
         } else {
             $error[] = 'token';
         }
-        if (isset($parameters['secret'])) {
-            $secret = $parameters['secret'];
+        if (isset($parameters['secretValue'])) {
+            $secret = $parameters['secretValue'];
         } else {
             $error[] = 'secret';
         }
@@ -68,6 +84,7 @@ class AuthenticationFactory
         if (!empty($error)) {
             throw new \Exception("Authentication parameters are missing: " . json_encode($error));
         }
+
         return new TokenAuthentication($apiKey, $apiClient, $token, $secret, $httpVerb, $queryString, $timeDifference);
     }
 
@@ -99,6 +116,7 @@ class AuthenticationFactory
         if (!empty($error)) {
             throw new \Exception("Authentication parameters are missing: " . json_encode($error));
         }
+
         return new KeyAuthentication($apiKey, $apiClient, $httpVerb, $queryString, $timeDifference);
     }
 }

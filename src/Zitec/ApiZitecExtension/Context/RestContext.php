@@ -2,7 +2,6 @@
 
 namespace Zitec\ApiZitecExtension\Context;
 
-
 use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Gherkin\Node\TableNode;
 use Behat\MinkExtension\Context\MinkContext;
@@ -12,27 +11,37 @@ use Zitec\ApiZitecExtension\Data\LoadData;
 use Zitec\ApiZitecExtension\Data\LoadParameters;
 use Zitec\ApiZitecExtension\Data\Storage;
 use Zitec\ApiZitecExtension\Services\Request;
-use Zitec\ApiZitecExtension\Services\Response;
-use Zitec\ApiZitecExtension\Services\ResponseFactory;
+use Zitec\ApiZitecExtension\Services\Response\Response;
+use Zitec\ApiZitecExtension\Services\Response\ResponseFactory;
 
+/**
+ * Class RestContext
+ *
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
+ */
 class RestContext extends MinkContext implements SnippetAcceptingContext
 {
     /**
      * @var LoadParameters
      */
     protected $parameters;
+
     /**
      * @var Request
      */
     protected $request;
+
     /**
      * @var string
      */
     protected $defaultLocale = "ro_RO";
+
     /**
      * @var Data
      */
     protected $data;
+
     /**
      * @var Storage
      */
@@ -45,10 +54,11 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
 
 
     /**
-     * RestContext_new constructor.
+     * RestContext constructor.
+     *
      * @param array $parameters
      */
-    public function __construct(array $parameters)
+    public function __construct(array $parameters = [])
     {
         $this->parameters = new LoadParameters($parameters); // TODO keep or delete the LoadParameters class??
         $this->request = new Request();
@@ -56,7 +66,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
         $this->data = Data::getInstance();
 
         if (!empty($parameters['headers']) && is_array($parameters['headers'])) {
-            $this->request->getHeaders()->setHeaders($parameters['headers']);
+            $this->request->getHeaders()->setInitialHeaders($parameters['headers']);
         }
 
         if (!empty($parameters['authentication']) && is_array($parameters['headers'])) {
@@ -111,13 +121,15 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
     /**
      * @Given I set the apiKey :apiKey and apiClient :apiClient
      *
-     * @param $apiKey
-     * @param $apiClient
+     * @param string $apiKey
+     * @param string $apiClient
      */
     public function iSetTheApiKeyAndApiUser($apiKey, $apiClient)
     {
-        $this->request->getHeaders()->setApiClient($apiClient);
-        $this->request->getHeaders()->setApiKey($apiKey);
+        $authParams = $this->request->getHeaders()->getAuthParams();
+        $authParams['apiClient'] = $apiClient;
+        $authParams['apiKey'] = $apiKey;
+        $this->request->getHeaders()->setAuthParams($authParams);
     }
 
     /**
@@ -130,7 +142,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      */
     public function iRemoveAnAuthHeader($headers)
     {
-        $toRemove = array_map('trim', explode(',' ,$headers));
+        $toRemove = array_map('trim', explode(',', $headers));
         foreach ($toRemove as $header) {
             $this->request->getHeaders()->removeHeader($header);
         }
@@ -152,12 +164,12 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      * @When I request :queryString
      * @When I request :queryString with dataset :dataSet
      *
-     * @param $queryString
-     * @param $dataSet
+     * @param string $queryString
+     * @param string|null $dataSet
      */
     public function iRequest($queryString, $dataSet = null)
     {
-        $data = [];
+        $data[strtolower($this->request->getRequestMethod())] = [];
         if (!empty($dataSet)) {
             $data = $this->data->getDataForRequest($this->request->getRequestMethod(), $dataSet);
         }
@@ -166,18 +178,21 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
          * @var Client
          */
         $client = $this->getSession()->getDriver()->getClient();
-        $baseUrl =$this->getMinkParameter('base_url');
+
+        $baseUrl = $this->getMinkParameter('base_url');
         $this->request->request($queryString, $data, $client, $baseUrl);
         $response = $this->getSession()->getPage()->getContent();
         $headers = $this->getSession()->getResponseHeaders();
+
         $responseFactory = new ResponseFactory();
         $this->response = $responseFactory->createResponse($response, $headers);
+        $this->storage->setLastResponse($this->response);
     }
 
     /**
      * @Given /^the response is (JSON|XML|empty)$/
      *
-     * @param $responseType
+     * @param string $responseType
      * @throws \Exception
      */
     public function checkResponseType($responseType)
@@ -185,10 +200,151 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
         if (!isset($this->response)) {
             throw new \Exception("There is no response set yet.");
         }
-        if ($responseType !== 'empty' && !$this->response->isEmpty()) {
-            if (strtolower($this->response->getType()) !== strtolower($responseType)) {
-                throw new \Exception('The response is not ' . $responseType);
+        switch ($responseType) {
+            case "empty":
+                if (!$this->response->isEmpty()) {
+                    $response = !is_string($this->response->getResponse()) ? $this->response->getRawResponse(
+                    ) : $this->response->getResponse();
+                    throw new \Exception("The content of the response is not empty!\n" . $response);
+                }
+                break;
+            default:
+                if (strtolower($this->response->getType()) !== strtolower($responseType)) {
+                    throw new \Exception('The response is not ' . $responseType);
+                }
+                break;
+        }
+    }
+
+    /**
+     * @Then /^I extract access token from the response$/
+     */
+    public function extractAccessTokenFromResponse()
+    {
+        $authParams = $this->request->getHeaders()->getAuthParams();
+        $tokenName = $authParams['token'];
+        $secretName = $authParams['secret'];
+        $token = $this->response->getItem($tokenName);
+        $secret = $this->response->getItem($secretName);
+        $authParams['tokenValue'] = $token;
+        $authParams['secretValue'] = $secret;
+        $this->request->getHeaders()->setAuthParams($authParams);
+    }
+
+
+    /**
+     * @param string|null $dataSet
+     * @throws \Exception
+     *
+     * @Given /^the response match the expected response(?:| from "([^"]*)" dataset)$/
+     */
+    public function theResponseMatchTheExpectedResponse($dataSet = null)
+    {
+        $expectedResponse = $this->data->getResponseData($dataSet);
+        if (isset($this->response)) {
+            $this->response->matchResponse($expectedResponse);
+        } else {
+            throw new \Exception("The response is not set yet.");
+        }
+    }
+
+    /**
+     * @param string|null $dataSet
+     * @throws \Exception
+     *
+     * @Then /^the response match the expected structure(?:| from "([^"]*)" dataset)$/
+     * @Then /^each response from the collection match the expected structure(?:| from "([^"]*)" dataset)$/
+     */
+    public function theResponseMatchExpectedStructure($dataSet = null)
+    {
+        $expectedResponse = $this->data->getResponseData($dataSet);
+        if (isset($this->response)) {
+            $this->response->matchStructure($expectedResponse);
+        } else {
+            throw new \Exception("The response is not set yet.");
+        }
+    }
+
+    /**
+     * Saves the $responseKey in storage under the $name key.
+     *
+     * @param string $responseKey
+     * @param string $name
+     * @throws \Exception
+     *
+     * @Given /^I save the "([^"]*)" as "([^"]*)"$/
+     */
+    public function iSaveTheAs($responseKey, $name)
+    {
+        if (!isset($this->response)) {
+            throw new \Exception('The response is not set yet.');
+        }
+
+        $index = $this->response->getItem($responseKey);
+        if (!isset($index)) {
+            throw new \Exception('The given key was not found in the response.');
+        }
+        $this->storage->storeValue($name, $index);
+    }
+
+    /**
+     * Set the request parameter in url from the saved response under key $name
+     * In case of multiple parameters in url the response keys will be fund in the TableNode
+     * The request should look like this: /method/%d
+     *
+     * @param string $request
+     * @param string | TableNode $name
+     * @param string|null $dataSet
+     *
+     * @When I request :request using :varKey with dataset :dataSet
+     * @When I request :request using :varKey
+     * @When I request :request with dataset :dataSet using:
+     * @When I request :request using:
+     */
+    public function iRequestUsingWithDataset($request, $name, $dataSet = null)
+    {
+        if (is_a($name, '\Behat\Gherkin\Node\TableNode')) {
+            $params = [];
+            foreach ($name->getColumn(0) as $value) {
+                $params[] = $this->storage->getValue($value);
             }
+            $queryString = vsprintf($request, $params);
+        } else {
+            $param = $this->storage->getValue($name);
+            $queryString = sprintf($request, $param);
+        }
+
+        $this->iRequest($queryString, $dataSet);
+    }
+
+    /**
+     *  Makes a request on the path given in the location header and checks the response status code.
+     *
+     * @param int $status
+     * @throws \Exception
+     *
+     * @Then I check location header to return :status
+     */
+    public function checkLocationHeader($status)
+    {
+        if (!isset($this->response)) {
+            throw new \Exception('The response is not set yet.');
+        }
+
+        $locationHeader = $this->response->getResponseHeader('Location');
+
+        if (!isset($locationHeader)) {
+            throw new \Exception('No Location header received.');
+        }
+
+        $this->iRequest($locationHeader);
+        try {
+            $this->assertResponseStatus($status);
+        } catch (\Exception $exception) {
+            throw new \Exception(
+                'The response status code after request on the Location header invalid. '
+                . $exception->getMessage()
+            );
         }
     }
 }
