@@ -104,7 +104,7 @@ class Request
     {
         $files = $this->getFiles($data);
         if (!empty($data['get'])) {
-            $queryString = '?' . http_build_query($data['get'], null, '&',
+            $queryString = $queryString . '?' . http_build_query($data['get'], null, '&',
                     PHP_QUERY_RFC3986);
         }
 
