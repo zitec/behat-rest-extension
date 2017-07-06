@@ -1,56 +1,84 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: bianca.vadean
- * Date: 6/16/2016
- * Time: 12:04 PM
- */
 
 namespace Zitec\ApiZitecExtension\Data;
 
-
+/**
+ * Class Data
+ *
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
+ */
 class Data
 {
+    /**
+     * @var Data|null
+     */
     private static $instance = null;
     /**
-     * @var LoadData $container
+     * @var LoadData $dataLoaded
      */
-    private $data = null;
+    private $dataLoaded = null;
 
+    /**
+     * Data constructor.
+     */
     private function __construct()
     {
     }
 
+    /**
+     * @return Data
+     */
     static function getInstance()
     {
         if (null === self::$instance) {
             self::$instance = new Data;
         }
+
         return self::$instance;
     }
-    
-    public function setData($data)
+
+    /**
+     * @param LoadData $dataLoaded
+     */
+    public function setDataLoaded(LoadData $dataLoaded)
     {
-        $this->data = $data;
+        $this->dataLoaded = $dataLoaded;
     }
-    
-    public function getData()
+
+    /**
+     * @return LoadData
+     */
+    public function getDataLoaded()
     {
-        return $this->data;
+        return $this->dataLoaded;
     }
-    
-    public function addDataToDataset($dataset, $values)
+
+    /**
+     * @param string $dataSet
+     * @param array $values
+     */
+    public function addDataToDataSet($dataSet, array $values)
     {
-        $this->data->addDataToDataset($dataset, $values);
+        $this->dataLoaded->addDataToDataSet($dataSet, $values);
     }
-    
-    public function getDataForRequest($method, $dataset)
+
+    /**
+     * @param string $method
+     * @param string $dataSet
+     * @return array
+     */
+    public function getDataForRequest($method, $dataSet)
     {
-        return $this->data->getDataForRequest($method, $dataset);
+        return $this->dataLoaded->getDataForRequest($method, $dataSet);
     }
-    
-    public function getResponseData($dataset)
+
+    /**
+     * @param string $dataSet
+     * @return array
+     */
+    public function getResponseData($dataSet)
     {
-        return $this->data->getResponseData($dataset);
+        return $this->dataLoaded->getResponseData($dataSet);
     }
 }

@@ -1,18 +1,22 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: bianca.vadean
- * Date: 5/31/2016
- * Time: 3:49 PM
- */
+
 
 namespace Zitec\ApiZitecExtension\Data;
 
 use Nelmio\Alice\Fixtures\Loader;
 use Nelmio\Alice\Fixtures\Fixture;
 
+/**
+ * Class ZitecLoader
+ *
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
+ */
 class ZitecLoader  extends Loader
 {
+    /**
+     * @param array $fixtures
+     */
     protected function instantiateFixtures(array $fixtures)
     {
         foreach ($fixtures as $fixture) {
@@ -31,7 +35,7 @@ class ZitecLoader  extends Loader
      * If the property is __collection, the metadata is saved in the __collection_info property
      *  and values are saved in __collection.
      *
-     * @param $instance
+     * @param mixed $instance
      * @param Fixture $fixture
      */
     public function setProperties($instance, Fixture $fixture)

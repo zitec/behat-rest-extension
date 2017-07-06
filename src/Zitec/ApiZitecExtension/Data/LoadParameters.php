@@ -1,11 +1,20 @@
 <?php
 
-
 namespace Zitec\ApiZitecExtension\Data;
 
-
+/**
+ * Class LoadParameters
+ *
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
+ */
 class LoadParameters
 {
+    /**
+     * LoadParameters constructor.
+     *
+     * @param array $parameters
+     */
     public function __construct(array $parameters)
     {
         if (!empty($parameters)) {
