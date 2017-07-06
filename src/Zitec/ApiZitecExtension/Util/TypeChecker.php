@@ -15,19 +15,19 @@ class TypeChecker
     /**
      * @var array
      */
-    protected $dataTypes = array(
-        'string' => 'checkString',
+    protected $dataTypes = [
+        'string'  => 'checkString',
         'integer' => 'checkInteger',
-        'float' => 'checkFloat',
-        'array' => 'checkArray',
+        'float'   => 'checkFloat',
+        'array'   => 'checkArray',
         'boolean' => 'checkBoolean',
-        'date' => 'checkDate',
-        'email' => 'checkEmail',
-        'url' => 'checkUrl',
-        'regex' => 'checkRegex',
-        'list' => 'checkValueInList',
+        'date'    => 'checkDate',
+        'email'   => 'checkEmail',
+        'url'     => 'checkUrl',
+        'regex'   => 'checkRegex',
+        'list'    => 'checkValueInList',
         'numeric' => 'checkNumeric',
-    );
+    ];
 
     /**
      * Parse the expected result and matches the right function to be called.
@@ -37,12 +37,12 @@ class TypeChecker
      * @param array $expected
      * @return array|string
      */
-    public function checkType (array $current, array $expected)
+    public function checkType(array $current, array $expected)
     {
-        $noMatch = array();
+        $noMatch = [];
         foreach ($expected as $key => &$value) {
             // Manage the flow in case of collections.
-            if (($key == "__collection") || substr($key, 0, strpos($key, '(')) == "__collection") {
+            if (($key === "__collection") || substr($key, 0, strpos($key, '(')) === "__collection") {
                 $collectionErr = $this->manageCollection($expected, $key, $current);
                 if (!empty($collectionErr)) {
                     $noMatch = array_merge($noMatch, $collectionErr);
@@ -67,11 +67,11 @@ class TypeChecker
             if ($pos = strpos($value, '(')) {
                 $type = substr($value, 0, $pos);
                 $arguments = trim(substr($value, $pos + 1, strpos($value, ')') - $pos - 1), ')');
-                $arguments = $type == 'regex' ? array($arguments) : explode(',', $arguments);
+                $arguments = $type == 'regex' ? [$arguments] : explode(',', $arguments);
                 $arguments = array_map('trim', $arguments);
             } else {
                 $type = $value;
-                $arguments = array();
+                $arguments = [];
             }
             // Check for null option.
             if ($pos = strpos($value, '|')) {
@@ -84,7 +84,7 @@ class TypeChecker
 
             array_unshift($arguments, $current[$key]);
             if (array_key_exists($type, $this->dataTypes)) {
-                $result = call_user_func_array(array($this, $this->dataTypes[$type]), $arguments);
+                $result = call_user_func_array([$this, $this->dataTypes[$type]], $arguments);
                 if (is_string($result)) {
                     $noMatch[$key] = $result;
                 }
@@ -114,7 +114,7 @@ class TypeChecker
     public function manageCollection(&$expected, $key, &$current)
     {
         $value = $expected[$key];
-        $noMatch = array();
+        $noMatch = [];
         $collectionInfo = [];
         /**
          * Handle the situation when the collection is root and it's saved as __collection
@@ -124,34 +124,91 @@ class TypeChecker
             if (empty($expected['__collection_info'])) {
                 $noMatch[$key] = 'There is no info about the collection.';
                 unset($expected[$key]);
+
                 return $noMatch;
             }
             $collectionInfo = $expected['__collection_info'];
             unset($expected['__collection_info']);
-        /**
-         * Handle collections when they are saved as __collection(key, min, max)
-         */
+            /**
+             * Handle collections when they are saved as __collection(key, min, max)
+             */
         } elseif (substr($key, 0, strpos($key, '(')) == "__collection") {
             preg_match_all("/\((.*?)\)/u", $key, $collectionArgs);
             $collectionArgs = explode(',', $collectionArgs[1][0]);
-            $collectionInfo = [
-                'name' => $collectionArgs[0],
-                'min' => isset($collectionArgs[1]) ? isset($collectionArgs[1]) : null,
-                'max' => isset($collectionArgs[2]) ? isset($collectionArgs[2]) : null,
-            ];
+            
+            try {
+                $collectionInfo = $this->getCollectionInfo($collectionArgs);
+            } catch (\InvalidArgumentException $ex) {
+                $messageKey = $collectionArgs[0] ? $collectionArgs[0] : 'unknown';
+                $noMatch[$messageKey] = $ex->getMessage();
+                unset($current[$messageKey]);
+                
+                return $noMatch;
+            }
+        }
+
+        if (!is_array($value)) {
+            $noMatch[$collectionInfo['name']] = "The collection must be array.";
+
+            return $noMatch;
         }
 
         $response = $this->checkCollection($collectionInfo, $value, $current);
         if ($collectionInfo['name'] == '-') {
-            $current = array();
-            empty($response) ? $noMatch = array() : $noMatch[] = $response;
+            $current = [];
+            empty($response) ? $noMatch = [] : $noMatch[] = $response;
         } else {
             unset($current[$collectionInfo['name']]);
             if (!empty($response)) {
                 $noMatch[$collectionInfo['name']] = $response;
             }
         }
+
         return $noMatch;
+    }
+
+    /**
+     * Collects collection argument and validate them before returning.
+     * 
+     * @param array $collectionArgs
+     * @throws \InvalidArgumentException
+     * @return array
+     */
+    private function getCollectionInfo(array $collectionArgs)
+    {
+        if (!isset($collectionArgs[0])) {
+            throw new \InvalidArgumentException('Collection name must be specified');
+        }
+
+        $name = $collectionArgs[0];
+        $min = null;
+        $max = null;
+
+        if ((isset($min) && !isset($max))
+            || (!isset($min) && isset($max))
+        ) {
+            throw new \InvalidArgumentException("'Min' and 'Max' should be set both or none.");
+        }
+
+        if (isset($collectionArgs[1]) && isset($collectionArgs[2])) {
+            $min = $collectionArgs[1];
+            $max = $collectionArgs[2];
+            $maxValidation = $this->checkNumericArguments($max);
+
+            if (isset($maxValidation)) {
+                throw new \InvalidArgumentException($maxValidation);
+            }
+
+            if ($min === '*' || !is_numeric($min)) {
+                throw new \InvalidArgumentException(" 'Min' argument should be only numeric, '*' value is not accepted.");
+            }
+        }
+
+        return [
+            'name' => $name,
+            'min' => $min,
+            'max' => $max,
+        ];
     }
 
 
@@ -169,7 +226,7 @@ class TypeChecker
      * @param array $current
      * @return array|string
      */
-    public function checkCollection ($collectionInfo, array $expectedValue, array $current)
+    public function checkCollection($collectionInfo, array $expectedValue, array $current)
     {
         $expectedKey = $collectionInfo['name'];
 
@@ -185,22 +242,37 @@ class TypeChecker
             }
         }
 
-        if(isset($collectionInfo['min']) && isset($collectionInfo['max'])) {
+        if (isset($collectionInfo['min']) && isset($collectionInfo['max'])) {
             $min = $collectionInfo['min'];
             $max = $collectionInfo['max'];
             $elements = count($currentValue);
             if (!$this->valueInInterval($elements, $min, $max)) {
-                $message = sprintf('The number of elements in collection ' . $expectedKey . ' is '
-                    . $elements . ' but should be between ' . $min . ' and ' . $max);
+                $message = sprintf(
+                    'The number of elements in collection ' . $expectedKey . ' is '
+                    . $elements . ' but should be between ' . $min . ' and ' . $max
+                );
+
                 return $message;
             }
         }
 
+        if ((empty($currentValue) && !empty($expectedValue)) && (null === $collectionInfo['min'] || $collectionInfo['min'] > 0) ) {
+            $noMatch = [];
+            foreach ($expectedValue as $key => $value) {
+                if (!array_key_exists($key, $currentValue)) {
+                    $noMatch[$key] = "Expected key not found in response.";
+                }
+            }
+
+            return $noMatch;
+        }
+
         foreach ($currentValue as $key => $value) {
-            if(!empty($result = $this->checkType($value, $expectedValue))) {
+            if (!empty($result = $this->checkType($value, $expectedValue))) {
                 return $result;
             }
         }
+
         return null;
     }
 
@@ -210,11 +282,11 @@ class TypeChecker
      *  The second argument is considered minimum value and the third is considered the maximum.
      *  If there are only two parameters it checks the string length to be exactly that value.
      *
-     * @param string $string  The string to be checked
+     * @param string $string The string to be checked
      * @return bool|string
      * @throws \Exception
      */
-    public function checkString ($string)
+    public function checkString($string)
     {
         $message = false;
         $type = gettype($string);
@@ -247,6 +319,7 @@ class TypeChecker
         if (is_string($message)) {
             return $message;
         }
+
         return true;
     }
 
@@ -259,7 +332,7 @@ class TypeChecker
      * @param $int
      * @return string
      */
-    public function checkInteger ($int)
+    public function checkInteger($int)
     {
         $type = gettype($int);
         if ($type != "integer") {
@@ -297,7 +370,7 @@ class TypeChecker
      * @param $float
      * @return string
      */
-    public function checkFloat ($float)
+    public function checkFloat($float)
     {
         $type = gettype($float);
         if ($type != "double") {
@@ -335,7 +408,7 @@ class TypeChecker
      * @param $array
      * @return string
      */
-    public function checkArray ($array)
+    public function checkArray($array)
     {
         $type = gettype($array);
         if ($type != "array") {
@@ -348,7 +421,12 @@ class TypeChecker
             }
             $elements = $arguments[1];
             if (count($array) != $elements) {
-                return sprintf('%s have %d elements but it should have %d elements.', json_encode($array), count($array), $elements);
+                return sprintf(
+                    '%s have %d elements but it should have %d elements.',
+                    json_encode($array),
+                    count($array),
+                    $elements
+                );
             }
         }
 
@@ -360,7 +438,7 @@ class TypeChecker
      * @param $boolean
      * @return string
      */
-    public function checkBoolean ($boolean)
+    public function checkBoolean($boolean)
     {
         $type = gettype($boolean);
         if ($type != "boolean") {
@@ -377,7 +455,7 @@ class TypeChecker
      * @param $format
      * @return string
      */
-    public function checkDate ($date, $format)
+    public function checkDate($date, $format)
     {
         if (empty($format)) {
             return 'Date format is mandatory.';
@@ -394,7 +472,7 @@ class TypeChecker
      * @param $email
      * @return string
      */
-    public function checkEmail ($email)
+    public function checkEmail($email)
     {
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return sprintf('%s is not a valid email address.', $email);
@@ -407,7 +485,7 @@ class TypeChecker
      * @param $url
      * @return string
      */
-    public function checkUrl ($url)
+    public function checkUrl($url)
     {
         if (!filter_var($url, FILTER_VALIDATE_URL)) {
             return sprintf('%s is not a valid url.', $url);
@@ -421,7 +499,7 @@ class TypeChecker
      * @param $regex
      * @return string
      */
-    public function checkRegex ($value, $regex)
+    public function checkRegex($value, $regex)
     {
         if (empty($regex)) {
             return 'The pattern cannot be empty.';
@@ -437,7 +515,7 @@ class TypeChecker
      * @param $value
      * @return string
      */
-    public function checkValueInList ($value)
+    public function checkValueInList($value)
     {
         $arguments = func_get_args();
         unset($arguments[0]);
@@ -458,7 +536,7 @@ class TypeChecker
      */
     public function checkNumeric($number)
     {
-        if(!is_numeric($number)) {
+        if (!is_numeric($number)) {
             return sprintf("%s is not numeric.", $number);
         }
     }
@@ -468,7 +546,7 @@ class TypeChecker
      *
      * @return string
      */
-    public function checkNumericArguments ()
+    public function checkNumericArguments()
     {
         $arguments = func_get_args();
         foreach ($arguments as $argument) {
@@ -487,13 +565,13 @@ class TypeChecker
      * @param string $max numeric
      * @return bool
      */
-    public function valueInInterval ($value, $min, $max)
+    public function valueInInterval($value, $min, $max)
     {
-		$min = trim($min);
+        $min = trim($min);
         $max = trim($max);
         if (is_numeric($min) && is_numeric($max)) {
             $condition = ($value >= $min && $value <= $max);
-        } elseif ($min == '*' && $max == '*'){
+        } elseif ($min == '*' && $max == '*') {
             $condition = true;
         } elseif ($min == "*") {
             $condition = $value <= $max;
@@ -503,6 +581,7 @@ class TypeChecker
         } else {
             return false;
         }
+
         return $condition;
     }
 }
