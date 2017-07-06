@@ -18,6 +18,7 @@ use Zitec\ApiZitecExtension\Services\Response\ResponseFactory;
  * Class RestContext
  *
  * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @author Marius BALTEANU marius.balteanu@zitec.com
  * @copyright Copyright (c) Zitec COM
  */
 class RestContext extends MinkContext implements SnippetAcceptingContext

@@ -2,9 +2,14 @@
 
 namespace Zitec\ApiZitecExtension\Services\Response;
 
-
 use Zitec\ApiZitecExtension\Util\TypeChecker;
 
+/**
+ * Class JsonResponse
+ *
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
+ */
 class JsonResponse implements Response
 {
     /**
@@ -76,6 +81,7 @@ class JsonResponse implements Response
         if (isset($this->responseHeaders[$name])) {
             return $this->responseHeaders[$name];
         }
+
         return null;
     }
 
@@ -89,6 +95,7 @@ class JsonResponse implements Response
         if (!empty($this->response)) {
             return false;
         }
+
         return true;
     }
 
@@ -153,6 +160,7 @@ class JsonResponse implements Response
                 }
             }
         }
+
         return $difference;
     }
 
@@ -187,12 +195,14 @@ class JsonResponse implements Response
                 }
                 throw new \Exception(sprintf('Key %s not found in response.', $path));
             }
+
             return $response;
 
         } else {
             if (!isset($response[$path])) {
                 throw new \Exception(sprintf('Key %s not found in response.', $path));
             }
+
             return $response[$path];
         }
     }

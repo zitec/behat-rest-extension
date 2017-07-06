@@ -2,7 +2,12 @@
 
 namespace Zitec\ApiZitecExtension\Services\Auth;
 
-
+/**
+ * Class Authentication
+ *
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
+ */
 abstract class Authentication
 {
     /**
@@ -28,11 +33,9 @@ abstract class Authentication
      */
     public abstract function getAuthHeaders();
 
-
-
     /**
-     * @param $key
-     * @param $message
+     * @param string $key
+     * @param string$message
      * @return string
      */
     protected static function hmacSha1($key, $message)

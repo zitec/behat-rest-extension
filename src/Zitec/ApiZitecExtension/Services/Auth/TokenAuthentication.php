@@ -2,7 +2,12 @@
 
 namespace Zitec\ApiZitecExtension\Services\Auth;
 
-
+/**
+ * Class TokenAuthentication
+ *
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
+ */
 class TokenAuthentication extends Authentication
 {
     /**
@@ -38,6 +43,17 @@ class TokenAuthentication extends Authentication
      */
     protected $signatureMessage;
 
+    /**
+     * TokenAuthentication constructor.
+     *
+     * @param string $apiKey
+     * @param string $apiClient
+     * @param string $token
+     * @param string $secret
+     * @param string $httpVerb
+     * @param string $queryString
+     * @param string $timeDifference
+     */
     public function __construct($apiKey, $apiClient, $token, $secret, $httpVerb, $queryString, $timeDifference)
     {
         $this->apiKey = $apiKey;
@@ -50,6 +66,9 @@ class TokenAuthentication extends Authentication
 
     }
 
+    /**
+     * @return array
+     */
     public function getAuthHeaders()
     {
         $authHeaders = [];
@@ -57,11 +76,11 @@ class TokenAuthentication extends Authentication
         $authHeaders['apiClient'] = $this->apiClient;
         $authHeaders['sha1'] = $this->getSignatureString();
         $authHeaders['token'] = $this->token;
+
         return $authHeaders;
     }
 
     /**
-
      * @return string
      */
     protected function getSignatureString()
@@ -72,6 +91,7 @@ class TokenAuthentication extends Authentication
             $message .= $this->secret;
         }
         $this->signatureMessage = $message;
+
         return $this->hmacSha1($this->apiKey, $message);
     }
 }

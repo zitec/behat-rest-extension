@@ -5,7 +5,8 @@ namespace Zitec\ApiZitecExtension\Services\Response;
 /**
  * Interface Response
  *
- * @package Zitec\ApiZitecExtension\Services\Response
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
  */
 interface Response
 {

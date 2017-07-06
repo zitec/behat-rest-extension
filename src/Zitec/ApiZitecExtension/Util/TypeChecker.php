@@ -1,15 +1,15 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: bianca.vadean
- * Date: 1/19/2016
- * Time: 12:22 PM
- */
 
 namespace Zitec\ApiZitecExtension\Util;
 
 use DateTime;
 
+/**
+ * Class TypeChecker
+ *
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
+ */
 class TypeChecker
 {
     /**
@@ -106,9 +106,9 @@ class TypeChecker
      * Parse the collection info in both situations
      * (when the collection is root in dataset and when the collection is a branch in dataset)
      *
-     * @param $expected
-     * @param $key
-     * @param $current
+     * @param array $expected
+     * @param string $key
+     * @param array $current
      * @return array|string
      */
     public function manageCollection(&$expected, $key, &$current)
@@ -221,12 +221,12 @@ class TypeChecker
      * Checks each element in a collection to match the expected element structure.
      * It also checks the number if elements in the collection if the expected number of elements is set.
      *
-     * @param $collectionInfo
+     * @param array $collectionInfo
      * @param array $expectedValue
      * @param array $current
      * @return array|string
      */
-    public function checkCollection($collectionInfo, array $expectedValue, array $current)
+    public function checkCollection(array $collectionInfo, array $expectedValue, array $current)
     {
         $expectedKey = $collectionInfo['name'];
 
@@ -329,7 +329,7 @@ class TypeChecker
      * It also support open intervals.
      *
      *
-     * @param $int
+     * @param int $int
      * @return string
      */
     public function checkInteger($int)
@@ -367,7 +367,7 @@ class TypeChecker
      * If there are 3 arguments it checks the float to be in the interval given.
      * If there are 2 arguments it checks the number of decimals.
      *
-     * @param $float
+     * @param float $float
      * @return string
      */
     public function checkFloat($float)
@@ -405,7 +405,7 @@ class TypeChecker
      * Checks the first argument to be array.
      * If the second argument is set, it checks the number of elements in array.
      *
-     * @param $array
+     * @param array $array
      * @return string
      */
     public function checkArray($array)
@@ -435,7 +435,7 @@ class TypeChecker
     /**
      * Checks the argument to be boolean.
      *
-     * @param $boolean
+     * @param bool $boolean
      * @return string
      */
     public function checkBoolean($boolean)
@@ -451,8 +451,8 @@ class TypeChecker
      * Checks the first argument to be a date formatted according to the
      * specified format in the second argument.
      *
-     * @param $date
-     * @param $format
+     * @param string $date
+     * @param string $format
      * @return string
      */
     public function checkDate($date, $format)
@@ -469,7 +469,7 @@ class TypeChecker
     /**
      * Checks the argument to be a valid email.
      *
-     * @param $email
+     * @param string $email
      * @return string
      */
     public function checkEmail($email)
@@ -482,7 +482,7 @@ class TypeChecker
     /**
      * Checks the argument to be a valid url.
      *
-     * @param $url
+     * @param string $url
      * @return string
      */
     public function checkUrl($url)
@@ -495,8 +495,8 @@ class TypeChecker
     /**
      * Checks the first argument to match the pattern given in the second argument.
      *
-     * @param $value
-     * @param $regex
+     * @param string $value
+     * @param string $regex
      * @return string
      */
     public function checkRegex($value, $regex)
@@ -512,7 +512,7 @@ class TypeChecker
     /**
      * Checks the first argument to be in the list(the other arguments).
      *
-     * @param $value
+     * @param string $value
      * @return string
      */
     public function checkValueInList($value)
@@ -531,7 +531,7 @@ class TypeChecker
     /**
      * Checks the argument to be numeric.
      *
-     * @param $number
+     * @param string $number
      * @return string
      */
     public function checkNumeric($number)
@@ -560,9 +560,9 @@ class TypeChecker
      * Checks the value to be between min and max.
      * The * represents an open interval.
      *
-     * @param $value
-     * @param string $min numeric
-     * @param string $max numeric
+     * @param string $value
+     * @param string $min
+     * @param string $max
      * @return bool
      */
     public function valueInInterval($value, $min, $max)

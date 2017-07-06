@@ -122,6 +122,7 @@ class ResponseClass
                 return true;
             }
         }
+
         return false;
     }
 }

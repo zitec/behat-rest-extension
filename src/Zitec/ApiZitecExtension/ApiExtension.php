@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: bianca.vadean
- * Date: 1/21/2016
- * Time: 6:26 PM
- */
 
 namespace Zitec\ApiZitecExtension;
 
@@ -13,6 +7,12 @@ use Behat\Testwork\ServiceContainer\ExtensionManager;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
+/**
+ * Class ApiExtension
+ *
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
+ */
 class ApiExtension implements TestworkExtension
 {
     /**
@@ -37,19 +37,32 @@ class ApiExtension implements TestworkExtension
         $container->setParameter('suite.configurations', $config);
     }
 
+    /**
+     * @return string
+     */
     public function getConfigKey ()
     {
         return "zitecApiExtension";
     }
 
+    /**
+     * @param ExtensionManager $extensionManager
+     */
     public function initialize (ExtensionManager $extensionManager)
     {
     }
 
+    /**
+     * @param ArrayNodeDefinition $builder
+     */
     public function configure (ArrayNodeDefinition $builder)
     {
     }
 
+    /**
+     * @param ContainerBuilder $container
+     * @param array $config
+     */
     public function load (ContainerBuilder $container, array $config)
     {
     }

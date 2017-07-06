@@ -34,6 +34,7 @@ class Data
         if (null === self::$instance) {
             self::$instance = new Data;
         }
+
         return self::$instance;
     }
 

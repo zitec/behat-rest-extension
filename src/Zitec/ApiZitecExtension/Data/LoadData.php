@@ -1,33 +1,48 @@
 <?php
 
-/**
- * Created by PhpStorm.
- * User: bianca.vadean
- * Date: 1/11/2016
- * Time: 1:00 PM
- */
-
 namespace Zitec\ApiZitecExtension\Data;
 
 use Nelmio\Alice\Fixtures\Parser\Methods\Yaml;
 
+/**
+ * Class LoadData
+ *
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
+ */
 class LoadData
 {
-
+    /**
+     * @var array
+     */
     protected $data;
+
+    /**
+     * @var string
+     */
     protected $dataSet;
+
+    /**
+     * @var string
+     */
     protected $rootPath;
 
+    /**
+     * LoadData constructor.
+     *
+     * @param string $rootPath
+     */
     public function __construct ($rootPath)
     {
         $this->rootPath = $rootPath;
     }
 
     /**
-     * @param $file
-     * @param string $defaultLocale default locale to use with faker if none is
-     *                  specified in the expression
-     * @return $this
+     * Default locale is used for faker initialization.
+     *
+     * @param string $file
+     * @param string $defaultLocale
+     * @return self
      * @throws \Exception
      */
     public function loadData ($file, $defaultLocale = "ro_RO")
@@ -68,8 +83,10 @@ class LoadData
     }
 
     /**
-     * @param $file
-     * @return string $path, absolute path for the file given
+     * Return the absolute path for the file given.
+     *
+     * @param string $file
+     * @return string $path
      * @throws \Exception
      */
     protected function createAbsolutePath ($file)
@@ -83,8 +100,8 @@ class LoadData
     }
 
     /**
-     * @param $requestMethod
-     * @param $dataSet
+     * @param string $requestMethod
+     * @param string $dataSet
      * @return array
      * @throws \Exception
      */
@@ -114,16 +131,17 @@ class LoadData
         $data = $this->setFiles($data);
         // Encode base64 images.
         $data = $this->encodeImages($data);
+
         return $data;
     }
 
     /**
      * Create real path for files and set them under $data['files'] key.
      *
-     * @param $data array
+     * @param array $data
      * @return array
      */
-    private function setFiles ($data)
+    private function setFiles (array $data)
     {
         $data['files'] = null;
         array_walk_recursive($data, function ($value, $key) use (&$data) {
@@ -132,16 +150,17 @@ class LoadData
                 unset($data[$key]);
             }
         });
+
         return $data;
     }
 
     /**
      * Encode base64 images identified by base64_encode(@/path_to_image).
      *
-     * @param $data array
+     * @param array $data
      * @return array
      */
-    private function encodeImages ($data)
+    private function encodeImages (array $data)
     {
         array_walk_recursive($data, function (&$value) {
            if (strpos($value, 'base64_encode(') === 0) {
@@ -151,15 +170,25 @@ class LoadData
                $value = base64_encode($binaryImage);
            }
         });
+
         return $data;
     }
 
+    /**
+     * @param string $dataSet
+     * @param array $values
+     */
     public function addDataToDataSet ($dataSet, array $values)
     {
         $set = array_merge((array)$this->data['request'][$dataSet], $values);
         $this->data['request'][$dataSet] = (object)$set;
     }
 
+    /**
+     * @param string $dataSet
+     * @return array
+     * @throws \Exception
+     */
     public function getResponseData ($dataSet)
     {
 
@@ -171,9 +200,13 @@ class LoadData
             throw new \Exception("Dataset \"{$dataSet}\" not found in response section from the data file.");
         }
         $responseData = (array)$this->data['response'][$dataSet];
+
         return $responseData;
     }
 
+    /**
+     * @return array
+     */
     public function getData ()
     {
         return $this->data;

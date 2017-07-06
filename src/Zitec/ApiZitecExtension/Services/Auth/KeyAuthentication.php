@@ -2,7 +2,12 @@
 
 namespace Zitec\ApiZitecExtension\Services\Auth;
 
-
+/**
+ * Class KeyAuthentication
+ *
+ * @author Bianca VADEAN bianca.vadean@zitec.com
+ * @copyright Copyright (c) Zitec COM
+ */
 class KeyAuthentication extends Authentication
 {
     /**
@@ -54,6 +59,7 @@ class KeyAuthentication extends Authentication
         $authHeaders['date'] = $this->date;
         $authHeaders['apiClient'] = $this->apiClient;
         $authHeaders['sha1'] = $this->getSignatureString();
+
         return $authHeaders;
     }
 
@@ -66,6 +72,7 @@ class KeyAuthentication extends Authentication
         $message = strtoupper($this->httpVerb) . trim(urldecode($this->queryString),
                 '/') . '/' . $this->apiClient . $this->date;
         $this->signatureMessage = $message;
+
         return $this->hmacSha1($this->apiKey, $message);
     }
 }
