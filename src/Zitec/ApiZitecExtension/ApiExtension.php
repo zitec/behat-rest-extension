@@ -20,7 +20,7 @@ class ApiExtension implements TestworkExtension
      *
      * @param ContainerBuilder $container
      */
-    public function process (ContainerBuilder $container)
+    public function process(ContainerBuilder $container)
     {
         $config = $container->getParameter('suite.configurations');
         // Set the root path in each context parameters.
@@ -31,9 +31,13 @@ class ApiExtension implements TestworkExtension
                     foreach($context as &$item) {
                         $item['parameters']['root_path'] = '%paths.base%';
                     }
+                    unset($item);
                 }
             }
+            unset($context);
         }
+        unset($suites);
+
         $container->setParameter('suite.configurations', $config);
     }
 

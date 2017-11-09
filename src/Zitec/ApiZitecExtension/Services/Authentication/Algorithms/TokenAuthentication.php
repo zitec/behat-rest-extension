@@ -1,6 +1,6 @@
 <?php
 
-namespace Zitec\ApiZitecExtension\Services\Auth;
+namespace Zitec\ApiZitecExtension\Services\Authentication\Algorithms;
 
 /**
  * Class TokenAuthentication
@@ -8,7 +8,7 @@ namespace Zitec\ApiZitecExtension\Services\Auth;
  * @author Bianca VADEAN bianca.vadean@zitec.com
  * @copyright Copyright (c) Zitec COM
  */
-class TokenAuthentication extends Authentication
+class TokenAuthentication extends AbstractAlgorithm
 {
     /**
      * @var string
@@ -71,12 +71,12 @@ class TokenAuthentication extends Authentication
      */
     public function getAuthHeaders()
     {
-        $authHeaders = [];
-        $authHeaders['date'] = $this->date;
-        $authHeaders['apiClient'] = $this->apiClient;
-        $authHeaders['sha1'] = $this->getSignatureString();
-        $authHeaders['token'] = $this->token;
-
+        $authHeaders = [
+            'date'      => $this->date,
+            'apiClient' => $this->apiClient,
+            'sha1'      => $this->getSignatureString(),
+            'token'     => $this->token,
+        ];
         return $authHeaders;
     }
 

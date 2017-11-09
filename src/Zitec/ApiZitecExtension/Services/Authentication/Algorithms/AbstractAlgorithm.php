@@ -1,6 +1,6 @@
 <?php
 
-namespace Zitec\ApiZitecExtension\Services\Auth;
+namespace Zitec\ApiZitecExtension\Services\Authentication\Algorithms;
 
 /**
  * Class Authentication
@@ -8,7 +8,7 @@ namespace Zitec\ApiZitecExtension\Services\Auth;
  * @author Bianca VADEAN bianca.vadean@zitec.com
  * @copyright Copyright (c) Zitec COM
  */
-abstract class Authentication
+abstract class AbstractAlgorithm
 {
     /**
      * @var string

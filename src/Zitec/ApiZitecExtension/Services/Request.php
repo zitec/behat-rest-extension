@@ -2,7 +2,7 @@
 
 namespace Zitec\ApiZitecExtension\Services;
 
-use Behat\Mink\Driver\Goutte\Client;
+use Goutte\Client;
 
 /**
  * Class Request
@@ -13,133 +13,55 @@ use Behat\Mink\Driver\Goutte\Client;
 class Request
 {
     /**
-     * @var string POST|DELETE|GET|PUT
+     * @var Client
      */
-    protected $requestMethod = 'GET';
-
-    /**
-     * @var Headers
-     */
-    protected $headers;
+    protected $client;
 
     /**
      * Request constructor.
-     */
-    public function __construct()
-    {
-        $this->headers = new Headers();
-    }
-
-    /**
-     * @return string
-     */
-    public function getRequestMethod()
-    {
-        return $this->requestMethod;
-    }
-
-    /**
-     * @param string $requestMethod
-     */
-    public function setRequestMethod($requestMethod)
-    {
-        $this->requestMethod = $requestMethod;
-    }
-
-    /**
-     * @return Headers
-     */
-    public function getHeaders()
-    {
-        return $this->headers;
-    }
-
-    /**
-     * @param Headers $headers
-     */
-    public function setHeaders(Headers $headers)
-    {
-        $this->headers = $headers;
-    }
-
-
-    /**
-     * Remove the token header.
      *
      * @param Client $client
-     * @throws \Exception
      */
-    public function resetTokens(Client $client)
+    public function __construct(Client $client)
     {
-        $initialHeaders = $this->getHeaders()->getInitialHeaders();
-        $tokenHeader = "";
-        $authParams = $this->getHeaders()->getAuthParams();
-        if (isset($authParams['token'])) {
-            $tokenName = $this->getHeaders()->getAuthParams()['token'];
-            $authParams['token'] = false;
-            $authParams['secret'] = false;
-            $this->getHeaders()->setAuthParams($authParams);
-        } else {
-            throw new \Exception("There is no token to reset.");
-        }
-        if (!empty($initialHeaders)) {
-            foreach ($initialHeaders as $key => $value) {
-                if ($value == $tokenName) {
-                    $tokenHeader = $key;
-                    break;
-                }
-            }
-        }
-        $this->headers->removeHeader($tokenHeader);
-        $client->removeHeader($tokenHeader);
+        $this->client = $client;
     }
 
     /**
-     * @param string $queryString
-     * @param array $data
-     * @param Client $client
-     * @param string $baseUrl
+     * Cleans up the existing headers and sets the new ones.
+     *
+     * @param array $headers
+     * @param array $seenHeaders
      */
-    public function request($queryString, array $data, Client $client, $baseUrl)
+    public function setHeaders($headers, $seenHeaders)
     {
-        $files = $this->getFiles($data);
+        foreach ($seenHeaders as $sHeader) {
+            $this->client->removeHeader($sHeader);
+        }
+        foreach ($headers as $name => $value) {
+            $this->client->setHeader($name, $value);
+        }
+    }
+
+    /**
+     * @param string $baseUrl
+     * @param string $queryString
+     * @param string $requestMethod
+     * @param array $data
+     */
+    public function request($baseUrl, $queryString, $requestMethod, array $data)
+    {
         if (!empty($data['get'])) {
             $queryString = $queryString . '?' . http_build_query($data['get'], null, '&',
                     PHP_QUERY_RFC3986);
         }
 
-        $this->headers->generateHeaders($this->requestMethod, $queryString);
-        $this->setClientHeaders($client);
         $uri = $this->locatePath($baseUrl, $queryString);
-        $httpVerb = strtolower($this->requestMethod);
-        $client->request($this->requestMethod, $uri, $data[$httpVerb], $files);
-    }
+        $httpVerb = strtolower($requestMethod);
 
-    /**
-     * Set the headers to client
-     *
-     * @param Client $client
-     */
-    protected function setClientHeaders(Client $client)
-    {
-        foreach ($this->headers->getHeaders() as $name => $value) {
-            $client->setHeader($name, $value);
-        }
-    }
+        $files = isset($data['files']) ? $data['files'] : [];
 
-    /**
-     * Returns files for request.
-     *
-     * @param array $data
-     * @return array
-     */
-    protected function getFiles($data)
-    {
-        if (isset($data['files'])) {
-            return $data['files'];
-        }
-
-        return [];
+        $this->client->request($requestMethod, $uri, $data[$httpVerb], $files);
     }
 
     /**

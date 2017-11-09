@@ -2,60 +2,100 @@
 
 namespace Zitec\ApiZitecExtension\Services\Response;
 
+use Zitec\ApiZitecExtension\Services\Response\Content\AbstractContent;
+
 /**
- * Interface Response
+ * Class Response
  *
  * @author Bianca VADEAN bianca.vadean@zitec.com
  * @copyright Copyright (c) Zitec COM
  */
-interface Response
+class Response
 {
     /**
-     * @return string
+     * @var AbstractContent|null
      */
-    public function getResponse();
+    protected $content;
+
+    /**
+     * @var string
+     */
+    protected $rawContent;
+
+    /**
+     * @var array
+     */
+    protected $headers = [];
+
+    /**
+     * Response constructor.
+     *
+     * @param string $content
+     * @param array $headers
+     * @throws \Exception
+     */
+    public function __construct($content, $headers)
+    {
+
+        foreach ($headers as $key => $header) {
+            $this->headers[$key] = reset($header);
+        }
+        if (strlen($content) === 0) {
+            return;
+        }
+        $this->rawContent = $content;
+    }
 
     /**
      * @return array
      */
-    public function getRawResponse();
-
-    /**
-     * @return array
-     */
-    public function getResponseHeaders();
+    public function getHeaders()
+    {
+        return $this->headers;
+    }
 
     /**
      * @param string $name
-     * @return string|null
+     * @return null|string
      */
-    public function getResponseHeader($name);
+    public function getHeader($name)
+    {
+        if (isset($this->headers[$name])) {
+            return $this->headers[$name];
+        }
+
+        return null;
+    }
 
     /**
+     * @return AbstractContent
+     * @throws \Exception
+     */
+    public function getContent()
+    {
+        if (strlen($this->rawContent) === 0) {
+            return null;
+        }
+
+        if ($this->content === null) {
+            if ($this->contentTypeIs('json')) {
+                $this->content = new Content\Json($this->rawContent);
+            } elseif ($this->contentTypeIs('xml')) {
+                $this->content = new Content\Xml($this->rawContent);
+            } else {
+                throw new \Exception('Unhandled content type');
+            }
+        }
+
+        return $this->content;
+    }
+
+    /**
+     * @param string $type
      * @return bool
      */
-    public function isEmpty();
-
-    /**
-     * @return string
-     */
-    public function getType();
-
-    /**
-     * @param string $name
-     * @return mixed
-     */
-    public function getItem($name);
-
-    /**
-     * @param array $expectedResponse
-     * @throws \Exception
-     */
-    public function matchResponse(array $expectedResponse);
-
-    /**
-     * @param array $expectedResponse
-     * @throws \Exception
-     */
-    public function matchStructure(array $expectedResponse);
+    public function contentTypeIs($type) {
+        $contentType = strtolower($this->getHeader('Content-Type'));
+        return stripos($contentType, strtolower($type)) !== false;
+    }
 }
