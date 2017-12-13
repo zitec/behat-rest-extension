@@ -37,11 +37,11 @@ class Parameters
     protected $timeDifference;
 
     /**
-     * Parameters constructor.
+     * Set initial parameters.
      *
      * @param array $parameters
      */
-    public function __construct(array $parameters)
+    public function setup(array $parameters)
     {
         if (!empty($parameters)) {
             foreach ($parameters as $key => $param) {

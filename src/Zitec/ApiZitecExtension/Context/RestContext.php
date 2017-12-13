@@ -2,7 +2,6 @@
 
 namespace Zitec\ApiZitecExtension\Context;
 
-use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Behat\Hook\Scope\BeforeStepScope;
 use Behat\Gherkin\Node\TableNode;
 use Behat\MinkExtension\Context\MinkContext;
@@ -10,6 +9,7 @@ use Zitec\ApiZitecExtension\Data\Data;
 use Zitec\ApiZitecExtension\Data\LoadData;
 use Zitec\ApiZitecExtension\Data\Parameters;
 use Zitec\ApiZitecExtension\Data\Storage;
+use Zitec\ApiZitecExtension\Services\Authentication\Algorithms\AbstractAlgorithm;
 use Zitec\ApiZitecExtension\Services\Authentication\AuthenticationFactory;
 use Zitec\ApiZitecExtension\Services\Request;
 use Zitec\ApiZitecExtension\Services\Response\Compare;
@@ -22,10 +22,10 @@ use Zitec\ApiZitecExtension\Services\Response\Response;
  * @author Marius BALTEANU marius.balteanu@zitec.com
  * @copyright Copyright (c) Zitec COM
  */
-class RestContext extends MinkContext implements SnippetAcceptingContext
+class RestContext extends MinkContext implements RestAwareContext
 {
     /**
-     * @var Parameters
+     * @var Parameters | array
      */
     protected $parameters;
 
@@ -59,6 +59,11 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      */
     private $compare;
 
+    /**
+     * @var LoadData
+     */
+    private $loader;
+
 
     /**
      * RestContext constructor.
@@ -67,11 +72,63 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      */
     public function __construct(array $parameters = [])
     {
-        $this->parameters = new Parameters($parameters);
+        $this->parameters = $parameters;
+    }
 
-        $this->storage = Storage::getInstance();
-        $this->data = Data::getInstance();
-        $this->compare = new Compare();
+    /**
+     * @param Parameters $parameters
+     * @return $this
+     */
+    public function setParameters(Parameters $parameters)
+    {
+        $parameters->setup($this->parameters);
+        $this->parameters = $parameters;
+
+        return $this;
+    }
+
+    /**
+     * @param Data $data
+     * @return $this
+     */
+    public function setData(Data $data)
+    {
+        $this->data = $data;
+
+        return $this;
+    }
+
+    /**
+     * @param Storage $storage
+     * @return $this
+     */
+    public function setStorage(Storage $storage)
+    {
+        $this->storage = $storage;
+
+        return $this;
+    }
+
+    /**
+     * @param Compare $compare
+     * @return $this
+     */
+    public function setCompare(Compare $compare)
+    {
+        $this->compare = $compare;
+
+        return $this;
+    }
+
+    /**
+     * @param LoadData $loader
+     * @return $this
+     */
+    public function setLoader(LoadData $loader)
+    {
+        $this->loader = $loader;
+
+        return $this;
     }
 
     /**
@@ -103,9 +160,8 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      */
     public function iLoadDataFromFile($file)
     {
-        $loader = new LoadData($this->parameters->root_path);
-        $loader->loadData($file, $this->defaultLocale);
-        $this->data->setDataLoaded($loader);
+        $this->loader->loadData($file, $this->defaultLocale);
+        $this->data->setDataLoaded($this->loader);
     }
 
     /**
@@ -234,14 +290,23 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      */
     public function extractAccessTokenFromResponse()
     {
-        $authParams = $this->request->getHeaders()->getAuthParams();
-        $tokenName = $authParams['token'];
-        $secretName = $authParams['secret'];
-        $token = $this->response->getContent()->getItem($tokenName);
-        $secret = $this->response->getContent()->getItem($secretName);
-        $authParams['tokenValue'] = $token;
-        $authParams['secretValue'] = $secret;
-        $this->request->getHeaders()->setAuthParams($authParams);
+        $authParams = $this->parameters->getAuthentication();
+        if (!empty($authParams)) {
+            if (isset($authParams['auth_type']) && $authParams['auth_type'] === 'token') {
+                if (!isset($authParams['token']) || !isset($authParams['secret'])) {
+                    throw new \Exception(
+                        '"token" and "secret" authentication parameters must be set for token authentication type.'
+                    );
+                }
+                $tokenName = $authParams['token'];
+                $secretName = $authParams['secret'];
+                $token = $this->response->getContent()->getItem($tokenName);
+                $secret = $this->response->getContent()->getItem($secretName);
+                $authParams['tokenValue'] = $token;
+                $authParams['secretValue'] = $secret;
+                $this->parameters->setAuthentication($authParams);
+            }
+        }
     }
 
 
@@ -293,11 +358,11 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
             throw new \Exception('The response is not set yet.');
         }
 
-        $index = $this->response->getContent()->getItem($responseKey);
-        if (!isset($index)) {
+        $value = $this->response->getContent()->getItem($responseKey);
+        if (!isset($value)) {
             throw new \Exception('The given key was not found in the response.');
         }
-        $this->storage->storeValue($name, $index);
+        $this->storage->storeValue($name, $value);
     }
 
     /**
@@ -334,7 +399,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      */
     public function iRequestUsingWithDataset($request, $name, $dataSet = null)
     {
-        if (is_a($name, '\Behat\Gherkin\Node\TableNode')) {
+        if ($name instanceof TableNode) {
             $params = [];
             foreach ($name->getColumn(0) as $value) {
                 $params[] = $this->storage->getValue($value);
@@ -396,16 +461,10 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
             } else {
                 $type = "key";
             }
-            $authFactory = new AuthenticationFactory();
-            $auth = $authFactory->createAuth(
-                $type,
-                $authParams,
-                $this->parameters->getRequestMethod(),
-                $queryString,
-                $this->parameters->getTimeDifference()
-            );
 
-            $authData =  $auth->getAuthHeaders();
+            $auth = $this->getAuth($type, $authParams, $queryString);
+
+            $authData = $auth->getAuthHeaders();
             foreach ($headers as $key => $value) {
                 if (isset($authData[$value])) {
                     $headers[$key] = $authData[$value];
@@ -414,7 +473,27 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
         }
 
         $baseUrl = $this->getMinkParameter('base_url');
-        $this->request->setHeaders($this->parameters->getHeaders(), $this->parameters->getSeenheaders());
+        $this->request->setHeaders($headers, $this->parameters->getSeenheaders());
         $this->request->request($baseUrl, $queryString, $this->parameters->getRequestMethod(), $data);
+    }
+
+    /**
+     * @param $type
+     * @param $params
+     * @param $queryString
+     * @return AbstractAlgorithm
+     */
+    protected function getAuth($type, $params, $queryString)
+    {
+        $authFactory = new AuthenticationFactory();
+        $auth = $authFactory->createAuth(
+            $type,
+            $params,
+            $this->parameters->getRequestMethod(),
+            $queryString,
+            $this->parameters->getTimeDifference()
+        );
+
+        return $auth;
     }
 }
