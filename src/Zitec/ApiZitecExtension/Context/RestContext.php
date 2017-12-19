@@ -161,6 +161,7 @@ class RestContext extends MinkContext implements RestAwareContext
     public function iLoadDataFromFile($file)
     {
         $this->loader->loadData($file, $this->defaultLocale);
+
         $this->data->setDataLoaded($this->loader);
     }
 

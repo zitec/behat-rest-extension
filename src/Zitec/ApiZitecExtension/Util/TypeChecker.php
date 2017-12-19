@@ -16,16 +16,16 @@ class TypeChecker
      * @var array
      */
     protected $dataTypes = [
-        'string'  => 'checkString',
+        'string' => 'checkString',
         'integer' => 'checkInteger',
-        'float'   => 'checkFloat',
-        'array'   => 'checkArray',
+        'float' => 'checkFloat',
+        'array' => 'checkArray',
         'boolean' => 'checkBoolean',
-        'date'    => 'checkDate',
-        'email'   => 'checkEmail',
-        'url'     => 'checkUrl',
-        'regex'   => 'checkRegex',
-        'list'    => 'checkValueInList',
+        'date' => 'checkDate',
+        'email' => 'checkEmail',
+        'url' => 'checkUrl',
+        'regex' => 'checkRegex',
+        'list' => 'checkValueInList',
         'numeric' => 'checkNumeric',
     ];
 
@@ -41,8 +41,12 @@ class TypeChecker
     {
         $noMatch = [];
         foreach ($expected as $key => &$value) {
+            // Ignore keys that contain info about collections.
+            if ((strpos($key, '__info_collection_') === 0)) {
+                continue;
+            }
             // Manage the flow in case of collections.
-            if (($key === "__collection") || substr($key, 0, strpos($key, '(')) === "__collection") {
+            if (strpos($key, '__collection_') === 0) {
                 $collectionErr = $this->manageCollection($expected, $key, $current);
                 if (!empty($collectionErr)) {
                     $noMatch = array_merge($noMatch, $collectionErr);
@@ -50,7 +54,7 @@ class TypeChecker
                 continue;
             }
 
-            if (!array_key_exists($key, $current)) {
+            if (!array_key_exists($key, $current) ) {
                 $noMatch[$key] = 'Expected key not found in response.';
                 continue;
             }
@@ -115,36 +119,24 @@ class TypeChecker
     {
         $value = $expected[$key];
         $noMatch = [];
-        $collectionInfo = [];
-        /**
-         * Handle the situation when the collection is root and it's saved as __collection
-         * and the info about collection is stored in __collection_info.
-         */
-        if ($key == '__collection') {
-            if (empty($expected['__collection_info'])) {
-                $noMatch[$key] = 'There is no info about the collection.';
-                unset($expected[$key]);
 
-                return $noMatch;
-            }
-            $collectionInfo = $expected['__collection_info'];
-            unset($expected['__collection_info']);
-            /**
-             * Handle collections when they are saved as __collection(key, min, max)
-             */
-        } elseif (substr($key, 0, strpos($key, '(')) == "__collection") {
-            preg_match_all("/\((.*?)\)/u", $key, $collectionArgs);
-            $collectionArgs = explode(',', $collectionArgs[1][0]);
-            
-            try {
-                $collectionInfo = $this->getCollectionInfo($collectionArgs);
-            } catch (\InvalidArgumentException $ex) {
-                $messageKey = $collectionArgs[0] ? $collectionArgs[0] : 'unknown';
-                $noMatch[$messageKey] = $ex->getMessage();
-                unset($current[$messageKey]);
-                
-                return $noMatch;
-            }
+        $collectionInfoKey = $this->getCollectionInfoKey($key);
+        if (!isset($expected[$collectionInfoKey])) {
+            $noMatch[$key] = 'There is no info about the collection.';
+
+            return $noMatch;
+        }
+        $collectionInfo = $expected[$collectionInfoKey];
+        unset($expected[$collectionInfoKey]);
+
+        try {
+            $collectionInfo = $this->validateCollectionInfo($collectionInfo);
+        } catch (\InvalidArgumentException $ex) {
+            $messageKey = $collectionInfo['name'] ? $collectionInfo['name'] : 'unknown';
+            $noMatch[$messageKey] = $ex->getMessage();
+            unset($current[$messageKey]);
+
+            return $noMatch;
         }
 
         if (!is_array($value)) {
@@ -168,31 +160,46 @@ class TypeChecker
     }
 
     /**
-     * Collects collection argument and validate them before returning.
-     * 
-     * @param array $collectionArgs
-     * @throws \InvalidArgumentException
+     * Extract collection information key.
+     * Example: collection key: __collection_users
+     *          collection information key should be like: __info_collection_users
+     *
+     * @param $currentKey
+     * @throws \Exception
+     * @return string
+     */
+    public function getCollectionInfoKey($currentKey)
+    {
+        if (strpos($currentKey, '__collection_') !== 0) {
+            throw new \Exception('');
+        }
+
+        $collectionName = str_replace('__collection_', '', $currentKey);
+
+        return '__info_collection_' . $collectionName;
+    }
+
+    /**
+     * Validate collection information
+     *
+     * @param array $collectionInfo
      * @return array
      */
-    private function getCollectionInfo(array $collectionArgs)
+    private function validateCollectionInfo(array $collectionInfo)
     {
-        if (!isset($collectionArgs[0])) {
+        if (empty($collectionInfo['name'])) {
             throw new \InvalidArgumentException('Collection name must be specified');
         }
 
-        $name = $collectionArgs[0];
-        $min = null;
-        $max = null;
+        $min = $collectionInfo['min'];
+        $max = $collectionInfo['max'];
 
-        if ((isset($min) && !isset($max))
-            || (!isset($min) && isset($max))
-        ) {
+
+        if ((isset($min) && !isset($max )) || (!isset($min) && isset($max))) {
             throw new \InvalidArgumentException("'Min' and 'Max' should be set both or none.");
         }
 
-        if (isset($collectionArgs[1]) && isset($collectionArgs[2])) {
-            $min = $collectionArgs[1];
-            $max = $collectionArgs[2];
+        if (isset($min) && isset($max)) {
             $maxValidation = $this->checkNumericArguments($max);
 
             if (isset($maxValidation)) {
@@ -200,15 +207,13 @@ class TypeChecker
             }
 
             if ($min === '*' || !is_numeric($min)) {
-                throw new \InvalidArgumentException(" 'Min' argument should be only numeric, '*' value is not accepted.");
+                throw new \InvalidArgumentException(
+                    " 'Min' argument should be only numeric, '*' value is not accepted."
+                );
             }
         }
 
-        return [
-            'name' => $name,
-            'min' => $min,
-            'max' => $max,
-        ];
+        return $collectionInfo;
     }
 
 
@@ -256,7 +261,7 @@ class TypeChecker
             }
         }
 
-        if ((empty($currentValue) && !empty($expectedValue)) && (null === $collectionInfo['min'] || $collectionInfo['min'] > 0) ) {
+        if ((empty($currentValue) && !empty($expectedValue)) && (null === $collectionInfo['min'] || $collectionInfo['min'] > 0)) {
             $noMatch = [];
             foreach ($expectedValue as $key => $value) {
                 if (!array_key_exists($key, $currentValue)) {
