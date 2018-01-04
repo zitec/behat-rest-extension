@@ -166,7 +166,7 @@ class RestContext extends MinkContext implements RestAwareContext
     }
 
     /**
-     * @Given /I add the following headers:
+     * @Given /^I add the following headers:$/
      *
      * @param TableNode $table
      */

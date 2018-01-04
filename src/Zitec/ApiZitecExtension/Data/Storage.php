@@ -3,6 +3,7 @@
 namespace Zitec\ApiZitecExtension\Data;
 
 use Behat\Testwork\Suite\Exception\ParameterNotFoundException;
+use Zitec\ApiZitecExtension\Services\Response\Response;
 
 /**
  * Class Storage
@@ -19,7 +20,7 @@ class Storage
     private $container = [];
 
     /**
-     * @var mixed
+     * @var Response
      */
     private $lastResponse;
 
@@ -38,6 +39,7 @@ class Storage
         if (null === self::$instance) {
             self::$instance = new Storage();
         }
+
         return self::$instance;
     }
 
@@ -56,11 +58,13 @@ class Storage
      */
     public function getValue($key)
     {
-        if(isset($this->container[$key])) {
+        if (isset($this->container[$key])) {
             return $this->container[$key];
         }
 
-        throw new ParameterNotFoundException("No parameter $key found in storage.", "Element not found in storage", $key);
+        throw new ParameterNotFoundException(
+            "No parameter $key found in storage.", "Element not found in storage", $key
+        );
     }
 
     /**
@@ -77,7 +81,7 @@ class Storage
     }
 
     /**
-     * @return mixed
+     * @return Response
      */
     public function getLastResponse()
     {
@@ -85,10 +89,21 @@ class Storage
     }
 
     /**
-     * @param mixed $lastResponse
+     * @param Response $lastResponse
      */
-    public function setLastResponse($lastResponse)
+    public function setLastResponse(Response $lastResponse)
     {
         $this->lastResponse = $lastResponse;
+    }
+
+    /**
+     * @param string $value
+     * @return string
+     */
+    public function getResponseItem($value)
+    {
+        if (isset($this->lastResponse)) {
+            return $this->getLastResponse()->getContent()->getItem($value);
+        }
     }
 }
