@@ -99,11 +99,14 @@ class Storage
     /**
      * @param string $value
      * @return string
+     * @throws \Exception
      */
     public function getResponseItem($value)
     {
         if (isset($this->lastResponse)) {
             return $this->getLastResponse()->getContent()->getItem($value);
         }
+
+        throw new \Exception('No response stored.');
     }
 }

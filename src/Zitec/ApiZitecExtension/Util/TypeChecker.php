@@ -354,7 +354,7 @@ class TypeChecker
             $max = $arguments[2];
 
             if (!$this->valueInInterval($int, $min, $max)) {
-                return sprintf('%d is not betweend %s and %s', $int, $min, $max);
+                return sprintf('%d is not between %s and %s', $int, $min, $max);
             }
         } elseif (count($arguments) > 1) {
             if (is_string($result = $this->checkNumericArguments($arguments[1]))) {

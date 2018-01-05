@@ -1,0 +1,13 @@
+HTTP/1.1 200 OK
+Content-Type: application/json;
+
+[
+  {
+    "user": 10,
+    "phone": "+40754124887"
+  },
+  {
+    "user": 2,
+    "phone": "+40784569451"
+  }
+]
