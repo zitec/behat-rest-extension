@@ -43,6 +43,7 @@ class Parameters
      */
     public function setup(array $parameters)
     {
+        $this->headers = [];
         if (!empty($parameters)) {
             foreach ($parameters as $key => $param) {
                 if ($key == 'headers') {
