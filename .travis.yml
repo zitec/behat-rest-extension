@@ -1,0 +1,11 @@
+language: php
+
+php:
+  - 7.1
+
+install:
+  - composer install
+
+# run phunit tests
+script:
+  - ./vendor/bin/phpunit tests
