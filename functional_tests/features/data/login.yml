@@ -1,0 +1,25 @@
+request:
+    Zitec\ApiZitecExtension\Data\Request:
+        valid:
+            email: ana@email.com
+            password: Password
+
+        invalid_password:
+            email: ana@email.com
+
+        invalid_email:
+            email: ana
+            password: Password
+
+
+
+response:
+    Zitec\ApiZitecExtension\Data\Response:
+        invalid_password:
+            error:
+                password: Password should not be empty.
+
+        wrong_email:
+            error:
+                email: Email format is not valid.
+

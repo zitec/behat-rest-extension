@@ -18,9 +18,26 @@ default:
             contexts:
                 - \FeatureContext:
                     parameters:
+                        authentication:
+                            apiKey: myheader
+                            apiClient: myheader
                         headers:
-
-
+                            Header: apiClient
 
             filters:
                 tags: "@auth"
+        tokenAuth:
+            contexts:
+                - \FeatureContext:
+                    parameters:
+                        authentication:
+                            auth_type: token
+                            apiKey: myheader
+                            apiClient: myheader
+                            token: token
+                            secret: secret
+                        headers:
+                            Header: token
+
+            filters:
+                tags: "@tokenAuth"

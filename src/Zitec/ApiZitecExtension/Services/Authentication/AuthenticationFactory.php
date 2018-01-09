@@ -60,8 +60,8 @@ class AuthenticationFactory
         $values = [
             'apiKey' => null,
             'apiClient' => null,
-            'tokenValue' => null,
-            'secretValue' => null,
+            'token' => null,
+            'secret' => null,
         ];
         $this->populateInputData($values, $parameters);
 

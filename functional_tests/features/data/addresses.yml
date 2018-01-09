@@ -1,0 +1,8 @@
+request:
+  Zitec\ApiZitecExtension\Data\Request:
+    new_address:
+        id: 10
+        phone: "0766112233"
+
+response:
+  Zitec\ApiZitecExtension\Data\Response:
