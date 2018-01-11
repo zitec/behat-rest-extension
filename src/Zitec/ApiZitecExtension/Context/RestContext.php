@@ -70,6 +70,13 @@ class RestContext extends MinkContext implements RestAwareContext
      */
     protected $followRedirects = false;
 
+    /**
+     * If true prints the response content.
+     *
+     * @var bool
+     */
+    protected $debug = false;
+
 
     /**
      * RestContext constructor.
@@ -258,6 +265,11 @@ class RestContext extends MinkContext implements RestAwareContext
         $headers = $this->getSession()->getResponseHeaders();
 
         $this->response = new Response($content, $headers);
+
+        /** For debugging purposes print the response content. */
+        if ($this->debug) {
+            echo $content;
+        }
 
         $this->storage->setLastResponse($this->response);
     }
