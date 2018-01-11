@@ -5,6 +5,7 @@ namespace Zitec\ApiZitecExtension\Context;
 use Behat\Behat\Hook\Scope\BeforeStepScope;
 use Behat\Gherkin\Node\TableNode;
 use Behat\MinkExtension\Context\MinkContext;
+use Symfony\Component\BrowserKit\Client;
 use Zitec\ApiZitecExtension\Data\Data;
 use Zitec\ApiZitecExtension\Data\LoadData;
 use Zitec\ApiZitecExtension\Data\Parameters;
@@ -63,6 +64,11 @@ class RestContext extends MinkContext implements RestAwareContext
      * @var LoadData
      */
     private $loader;
+
+    /**
+     * @var bool
+     */
+    protected $followRedirects = false;
 
 
     /**
@@ -132,13 +138,17 @@ class RestContext extends MinkContext implements RestAwareContext
     }
 
     /**
+     * Create request object and set client and redirecting option.
+     *
      * @param BeforeStepScope $scope
      * @BeforeStep
      */
     public function prepare(BeforeStepScope $scope)
     {
         if ($this->request === null) {
+            /** @var Client $client */
             $client = $this->getSession()->getDriver()->getClient();
+            $client->followRedirects($this->followRedirects);
             $this->request = new Request($client);
         }
     }

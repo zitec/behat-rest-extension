@@ -1,0 +1,29 @@
+request:
+    Zitec\ApiZitecExtension\Data\Request:
+        user_1:
+            id: 1
+
+response:
+    Zitec\ApiZitecExtension\Data\Response:
+        user_1:
+            id: 1
+            name: Andrei Popescu
+
+        users (template):
+            __collection(users, 1, *):
+                id: integer
+                name: string
+                email: email
+                balance: float
+                accounts: array
+                active: boolean
+                created_at: date(Y-m-d H:i:s)
+                account_type: list(natural, legal)
+                company_url: url | null
+                cardId: numeric
+                cnp: string
+
+        all_users (extends users):
+
+        all_admins (extends users):
+            count: integer
