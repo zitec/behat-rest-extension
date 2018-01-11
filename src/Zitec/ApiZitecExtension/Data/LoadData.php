@@ -2,7 +2,9 @@
 
 namespace Zitec\ApiZitecExtension\Data;
 
-use Nelmio\Alice\Fixtures\Parser\Methods\Yaml;
+use Nelmio\Alice\Loader\NativeLoader;
+use Nelmio\Alice\Parser\Chainable\YamlParser;
+use Symfony\Component\Yaml\Parser;
 
 /**
  * Class LoadData
@@ -45,20 +47,26 @@ class LoadData
      * @return self
      * @throws \Exception
      */
-    public function loadData ($file, $defaultLocale = "ro_RO")
+    public function loadData($file, $defaultLocale = "ro_RO")
     {
         $this->checkFileFormat($file);
-        $yaml = new Yaml();
+        $yaml = new YamlParser(new Parser());
+        $fakerGenerator = \Faker\Factory::create($defaultLocale);
+        $loader = new NativeLoader($fakerGenerator);
         $fileInfo = $this->checkFileFormat($file);
         $data = $yaml->parse($this->createAbsolutePath($fileInfo));
-        $loader = new ZitecLoader($defaultLocale, [], null);
 
         if (array_key_exists('request', $data) && !empty($data['request']['Zitec\ApiZitecExtension\Data\Request'])) {
-            $this->data['request'] = $loader->load($data['request']);
+            $this->data['request'] = $loader->loadData($data['request'])->getObjects();
         }
 
         if (array_key_exists('response', $data) && !empty($data['response']['Zitec\ApiZitecExtension\Data\Response'])) {
-            $this->data['response'] = $loader->load($data['response']);
+            $response = $loader->loadData($data['response'])->getObjects();
+            // Process each data set
+            foreach ($response as &$dataSet) {
+                $dataSet = $this->processCollections((array)$dataSet);
+            }
+            $this->data['response'] = $response;
         }
 
         return $this;
@@ -210,5 +218,34 @@ class LoadData
     public function getData ()
     {
         return $this->data;
+    }
+
+    /**
+     * @param array $data
+     * @return array
+     */
+    private function processCollections($data)
+    {
+        foreach ($data as $key => $value) {
+            if (substr($key, 0, strpos($key, '(')) == "__collection") {
+                // set min max
+                preg_match_all("/\((.*?)\)/u", $key, $collectionArgs);
+                $collectionArgs = explode(',', $collectionArgs[1][0]);
+                $infoKey = '__info_collection_' . $collectionArgs[0];
+                $data[$infoKey] = [
+                    'name' => $collectionArgs[0],
+                    'min' => isset($collectionArgs[1]) ? $collectionArgs[1] : null,
+                    'max' => isset($collectionArgs[2]) ? $collectionArgs[2] : null,
+                ];
+                unset($data[$key]);
+                $key = '__collection_' . $collectionArgs[0];
+            }
+            if (is_array($value)) {
+               $value = $this->processCollections($value);
+            }
+            $data[$key] = $value;
+        }
+
+        return $data;
     }
 }

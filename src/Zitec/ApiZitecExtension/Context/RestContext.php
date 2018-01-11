@@ -2,17 +2,19 @@
 
 namespace Zitec\ApiZitecExtension\Context;
 
-use Behat\Behat\Context\SnippetAcceptingContext;
+use Behat\Behat\Hook\Scope\BeforeStepScope;
 use Behat\Gherkin\Node\TableNode;
 use Behat\MinkExtension\Context\MinkContext;
-use Goutte\Client;
+use Symfony\Component\BrowserKit\Client;
 use Zitec\ApiZitecExtension\Data\Data;
 use Zitec\ApiZitecExtension\Data\LoadData;
-use Zitec\ApiZitecExtension\Data\LoadParameters;
+use Zitec\ApiZitecExtension\Data\Parameters;
 use Zitec\ApiZitecExtension\Data\Storage;
+use Zitec\ApiZitecExtension\Services\Authentication\Algorithms\AbstractAlgorithm;
+use Zitec\ApiZitecExtension\Services\Authentication\AuthenticationFactory;
 use Zitec\ApiZitecExtension\Services\Request;
+use Zitec\ApiZitecExtension\Services\Response\Compare;
 use Zitec\ApiZitecExtension\Services\Response\Response;
-use Zitec\ApiZitecExtension\Services\Response\ResponseFactory;
 
 /**
  * Class RestContext
@@ -21,10 +23,10 @@ use Zitec\ApiZitecExtension\Services\Response\ResponseFactory;
  * @author Marius BALTEANU marius.balteanu@zitec.com
  * @copyright Copyright (c) Zitec COM
  */
-class RestContext extends MinkContext implements SnippetAcceptingContext
+class RestContext extends MinkContext implements RestAwareContext
 {
     /**
-     * @var LoadParameters
+     * @var Parameters | array
      */
     protected $parameters;
 
@@ -53,6 +55,28 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      */
     protected $response;
 
+    /**
+     * @var Compare
+     */
+    private $compare;
+
+    /**
+     * @var LoadData
+     */
+    private $loader;
+
+    /**
+     * @var bool
+     */
+    protected $followRedirects = false;
+
+    /**
+     * If true prints the response content.
+     *
+     * @var bool
+     */
+    protected $debug = false;
+
 
     /**
      * RestContext constructor.
@@ -61,28 +85,89 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      */
     public function __construct(array $parameters = [])
     {
-        $this->parameters = new LoadParameters($parameters); // TODO keep or delete the LoadParameters class??
-        $this->request = new Request();
-        $this->storage = Storage::getInstance();
-        $this->data = Data::getInstance();
+        $this->parameters = $parameters;
+    }
 
-        if (!empty($parameters['headers']) && is_array($parameters['headers'])) {
-            $this->request->getHeaders()->setInitialHeaders($parameters['headers']);
-        }
+    /**
+     * @param Parameters $parameters
+     * @return $this
+     */
+    public function setParameters(Parameters $parameters)
+    {
+        $parameters->setup($this->parameters);
+        $this->parameters = $parameters;
 
-        if (!empty($parameters['authentication']) && is_array($parameters['headers'])) {
-            $this->request->getHeaders()->setAuthParams($parameters['authentication']);
+        return $this;
+    }
+
+    /**
+     * @param Data $data
+     * @return $this
+     */
+    public function setData(Data $data)
+    {
+        $this->data = $data;
+
+        return $this;
+    }
+
+    /**
+     * @param Storage $storage
+     * @return $this
+     */
+    public function setStorage(Storage $storage)
+    {
+        $this->storage = $storage;
+
+        return $this;
+    }
+
+    /**
+     * @param Compare $compare
+     * @return $this
+     */
+    public function setCompare(Compare $compare)
+    {
+        $this->compare = $compare;
+
+        return $this;
+    }
+
+    /**
+     * @param LoadData $loader
+     * @return $this
+     */
+    public function setLoader(LoadData $loader)
+    {
+        $this->loader = $loader;
+
+        return $this;
+    }
+
+    /**
+     * Create request object and set client and redirecting option.
+     *
+     * @param BeforeStepScope $scope
+     * @BeforeStep
+     */
+    public function prepare(BeforeStepScope $scope)
+    {
+        if ($this->request === null) {
+            /** @var Client $client */
+            $client = $this->getSession()->getDriver()->getClient();
+            $client->followRedirects($this->followRedirects);
+            $this->request = new Request($client);
         }
     }
 
     /**
      * @Given /^(?:|I )set the request method to (POST|DELETE|GET|PUT)$/
      *
-     * @param string $objectType
+     * @param string $method
      */
-    public function iSetTheRequestMethod($objectType)
+    public function iSetTheRequestMethod($method)
     {
-        $this->request->setRequestMethod($objectType);
+        $this->parameters->setRequestMethod($method);
     }
 
     /**
@@ -92,13 +177,13 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      */
     public function iLoadDataFromFile($file)
     {
-        $loader = new LoadData($this->parameters->root_path); // TODO manage better root_path parameter
-        $data = $loader->loadData($file, $this->defaultLocale);
-        $this->data->setDataLoaded($data);
+        $this->loader->loadData($file, $this->defaultLocale);
+
+        $this->data->setDataLoaded($this->loader);
     }
 
     /**
-     * @Given /I add the following headers:
+     * @Given /^I add the following headers:$/
      *
      * @param TableNode $table
      */
@@ -106,7 +191,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
     {
         foreach ($table->getRows() as $row) {
             list($name, $value) = $row;
-            $this->request->getHeaders()->addHeader($name, $value);
+            $this->parameters->addHeader($name, $value);
         }
     }
 
@@ -115,8 +200,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      */
     public function iResetTheAccessTokens()
     {
-        $client = $this->getSession()->getDriver()->getClient();
-        $this->request->resetTokens($client);
+        $this->parameters->setAuthentication([]);
     }
 
     /**
@@ -127,10 +211,10 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      */
     public function iSetTheApiKeyAndApiUser($apiKey, $apiClient)
     {
-        $authParams = $this->request->getHeaders()->getAuthParams();
+        $authParams = $this->parameters->getAuthentication();
         $authParams['apiClient'] = $apiClient;
         $authParams['apiKey'] = $apiKey;
-        $this->request->getHeaders()->setAuthParams($authParams);
+        $this->parameters->setAuthentication($authParams);
     }
 
     /**
@@ -141,11 +225,11 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      *
      * @param string $headers
      */
-    public function iRemoveAnAuthHeader($headers)
+    public function iRemoveAHeader($headers)
     {
         $toRemove = array_map('trim', explode(',', $headers));
         foreach ($toRemove as $header) {
-            $this->request->getHeaders()->removeHeader($header);
+            $this->parameters->removeHeader($header);
         }
     }
 
@@ -158,7 +242,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      */
     public function iAddToRequestTime($time)
     {
-        $this->request->getHeaders()->setTimeDifference($time);
+        $this->parameters->setTimeDifference($time);
     }
 
     /**
@@ -170,23 +254,23 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      */
     public function iRequest($queryString, $dataSet = null)
     {
-        $data[strtolower($this->request->getRequestMethod())] = [];
+        $data[strtolower($this->parameters->getRequestMethod())] = [];
         if (!empty($dataSet)) {
-            $data = $this->data->getDataForRequest($this->request->getRequestMethod(), $dataSet);
+            $data = $this->data->getDataForRequest($this->parameters->getRequestMethod(), $dataSet);
         }
 
-        /**
-         * @var Client
-         */
-        $client = $this->getSession()->getDriver()->getClient();
+        $this->doHttpRequest($queryString, $data);
 
-        $baseUrl = $this->getMinkParameter('base_url');
-        $this->request->request($queryString, $data, $client, $baseUrl);
-        $response = $this->getSession()->getPage()->getContent();
+        $content = $this->getSession()->getPage()->getContent();
         $headers = $this->getSession()->getResponseHeaders();
 
-        $responseFactory = new ResponseFactory();
-        $this->response = $responseFactory->createResponse($response, $headers);
+        $this->response = new Response($content, $headers);
+
+        /** For debugging purposes print the response content. */
+        if ($this->debug) {
+            echo $content;
+        }
+
         $this->storage->setLastResponse($this->response);
     }
 
@@ -201,17 +285,24 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
         if (!isset($this->response)) {
             throw new \Exception("There is no response set yet.");
         }
+        $responseType = strtolower($responseType);
         switch ($responseType) {
-            case "empty":
-                if (!$this->response->isEmpty()) {
-                    $response = !is_string($this->response->getResponse()) ? $this->response->getRawResponse(
-                    ) : $this->response->getResponse();
-                    throw new \Exception("The content of the response is not empty!\n" . $response);
+            case 'empty':
+                if ($this->response->getContent() !== null) {
+                    throw new \Exception(
+                        sprintf(
+                            "The content of the response is not empty!\n%s",
+                            $this->response->getContent()->getRawContent()
+                        )
+                    );
                 }
                 break;
             default:
-                if (strtolower($this->response->getType()) !== strtolower($responseType)) {
-                    throw new \Exception('The response is not ' . $responseType);
+                if (!$this->response->contentTypeIs($responseType)) {
+                    throw new \Exception(sprintf('The response is not %s', $responseType));
+                }
+                if ($this->response->getContent() === null) {
+                    throw new \Exception(sprintf('The response is empty'));
                 }
                 break;
         }
@@ -222,14 +313,23 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      */
     public function extractAccessTokenFromResponse()
     {
-        $authParams = $this->request->getHeaders()->getAuthParams();
-        $tokenName = $authParams['token'];
-        $secretName = $authParams['secret'];
-        $token = $this->response->getItem($tokenName);
-        $secret = $this->response->getItem($secretName);
-        $authParams['tokenValue'] = $token;
-        $authParams['secretValue'] = $secret;
-        $this->request->getHeaders()->setAuthParams($authParams);
+        $authParams = $this->parameters->getAuthentication();
+        if (!empty($authParams)) {
+            if (isset($authParams['auth_type']) && $authParams['auth_type'] === 'token') {
+                if (!isset($authParams['token']) || !isset($authParams['secret'])) {
+                    throw new \Exception(
+                        '"token" and "secret" authentication parameters must be set for token authentication type.'
+                    );
+                }
+                $tokenName = $authParams['token'];
+                $secretName = $authParams['secret'];
+                $token = $this->response->getContent()->getItem($tokenName);
+                $secret = $this->response->getContent()->getItem($secretName);
+                $authParams['tokenValue'] = $token;
+                $authParams['secretValue'] = $secret;
+                $this->parameters->setAuthentication($authParams);
+            }
+        }
     }
 
 
@@ -243,7 +343,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
     {
         $expectedResponse = $this->data->getResponseData($dataSet);
         if (isset($this->response)) {
-            $this->response->matchResponse($expectedResponse);
+            $this->compare->matchResponse($expectedResponse, $this->response);
         } else {
             throw new \Exception("The response is not set yet.");
         }
@@ -260,7 +360,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
     {
         $expectedResponse = $this->data->getResponseData($dataSet);
         if (isset($this->response)) {
-            $this->response->matchStructure($expectedResponse);
+            $this->compare->matchStructure($expectedResponse, $this->response);
         } else {
             throw new \Exception("The response is not set yet.");
         }
@@ -281,11 +381,29 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
             throw new \Exception('The response is not set yet.');
         }
 
-        $index = $this->response->getItem($responseKey);
-        if (!isset($index)) {
+        $value = $this->response->getContent()->getItem($responseKey);
+        if (!isset($value)) {
             throw new \Exception('The given key was not found in the response.');
         }
-        $this->storage->storeValue($name, $index);
+        $this->storage->storeValue($name, $value);
+    }
+
+    /**
+     * @Given I set the stored value :storedKey in dataset :dataSet as :dataSetKey
+     *
+     * @param string $storedKey
+     * @param string $dataSet
+     * @param string $dataSetKey
+     */
+    public function setStoredValueInDataSet($storedKey, $dataSet, $dataSetKey)
+    {
+        $value = $this->storage->getValue($storedKey);
+        $this->data->addDataToDataset(
+            $dataSet,
+            [
+                $dataSetKey => $value,
+            ]
+        );
     }
 
     /**
@@ -304,7 +422,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
      */
     public function iRequestUsingWithDataset($request, $name, $dataSet = null)
     {
-        if (is_a($name, '\Behat\Gherkin\Node\TableNode')) {
+        if ($name instanceof TableNode) {
             $params = [];
             foreach ($name->getColumn(0) as $value) {
                 $params[] = $this->storage->getValue($value);
@@ -332,7 +450,7 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
             throw new \Exception('The response is not set yet.');
         }
 
-        $locationHeader = $this->response->getResponseHeader('Location');
+        $locationHeader = $this->response->getHeader('Location');
 
         if (!isset($locationHeader)) {
             throw new \Exception('No Location header received.');
@@ -347,5 +465,58 @@ class RestContext extends MinkContext implements SnippetAcceptingContext
                 . $exception->getMessage()
             );
         }
+    }
+
+    /**
+     * Makes the actual request.
+     *
+     * @param string $queryString
+     * @param  $data
+     */
+    protected function doHttpRequest($queryString, $data)
+    {
+        $headers = $this->parameters->getHeaders();
+
+        $authParams = $this->parameters->getAuthentication();
+        if (!empty($authParams)) {
+            if (isset($authParams['auth_type'])) {
+                $type = $authParams['auth_type'];
+            } else {
+                $type = "key";
+            }
+
+            $auth = $this->getAuth($type, $authParams, $queryString);
+
+            $authData = $auth->getAuthHeaders();
+            foreach ($headers as $key => $value) {
+                if (isset($authData[$value])) {
+                    $headers[$key] = $authData[$value];
+                }
+            }
+        }
+
+        $baseUrl = $this->getMinkParameter('base_url');
+        $this->request->setHeaders($headers, $this->parameters->getSeenheaders());
+        $this->request->request($baseUrl, $queryString, $this->parameters->getRequestMethod(), $data);
+    }
+
+    /**
+     * @param $type
+     * @param $params
+     * @param $queryString
+     * @return AbstractAlgorithm
+     */
+    protected function getAuth($type, $params, $queryString)
+    {
+        $authFactory = new AuthenticationFactory();
+        $auth = $authFactory->createAuth(
+            $type,
+            $params,
+            $this->parameters->getRequestMethod(),
+            $queryString,
+            $this->parameters->getTimeDifference()
+        );
+
+        return $auth;
     }
 }

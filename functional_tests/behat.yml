@@ -1,0 +1,43 @@
+default:
+    extensions:
+        Behat\MinkExtension:
+            base_url: http://localhost:9001
+            goutte:
+                guzzle_parameters:
+                    verify: false
+                    curl.options:
+                        debug: true
+        Zitec\ApiZitecExtension\ApiExtension: ~
+    suites:
+        noAuth:
+            contexts:
+                - \FeatureContext
+            filters:
+                tags: "@noAuth && ~@wip"
+        auth:
+            contexts:
+                - \FeatureContext:
+                    parameters:
+                        authentication:
+                            apiKey: myheader
+                            apiClient: myheader
+                        headers:
+                            Header: apiClient
+
+            filters:
+                tags: "@auth"
+        tokenAuth:
+            contexts:
+                - \FeatureContext:
+                    parameters:
+                        authentication:
+                            auth_type: token
+                            apiKey: myheader
+                            apiClient: myheader
+                            token: token
+                            secret: secret
+                        headers:
+                            Header: token
+
+            filters:
+                tags: "@tokenAuth"

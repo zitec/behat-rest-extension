@@ -1,0 +1,9 @@
+request:
+    Zitec\ApiZitecExtension\Data\Request:
+        valid:
+            name: Ana
+
+response:
+    Zitec\ApiZitecExtension\Data\Response:
+        valid:
+            name: string

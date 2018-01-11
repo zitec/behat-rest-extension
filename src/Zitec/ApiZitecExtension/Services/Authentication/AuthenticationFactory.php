@@ -1,6 +1,10 @@
 <?php
 
-namespace Zitec\ApiZitecExtension\Services\Auth;
+namespace Zitec\ApiZitecExtension\Services\Authentication;
+
+use Zitec\ApiZitecExtension\Services\Authentication\Algorithms\AbstractAlgorithm;
+use Zitec\ApiZitecExtension\Services\Authentication\Algorithms\KeyAuthentication;
+use Zitec\ApiZitecExtension\Services\Authentication\Algorithms\TokenAuthentication;
 
 /**
  * Class AuthenticationFactory
@@ -24,7 +28,7 @@ class AuthenticationFactory
      * @param string $httpVerb
      * @param string $queryString
      * @param string $timeDifference
-     * @return Authentication
+     * @return AbstractAlgorithm
      * @throws \Exception
      */
     public function createAuth($authType, $parameters, $httpVerb, $queryString, $timeDifference)
@@ -48,42 +52,20 @@ class AuthenticationFactory
      * @param string $httpVerb
      * @param string $queryString
      * @param string $timeDifference
-     * @return Authentication
+     * @return AbstractAlgorithm
      * @throws \Exception
      */
     public function createTokenAuth($parameters, $httpVerb, $queryString, $timeDifference)
     {
-        $error = [];
-        $apiKey = null;
-        $apiClient = null;
-        $token = null;
-        $secret = null;
-        if (isset($parameters['apiKey'])) {
-            $apiKey = $parameters['apiKey'];
-        } else {
-            $error[] = 'apiKey';
-        }
+        $values = [
+            'apiKey' => null,
+            'apiClient' => null,
+            'token' => null,
+            'secret' => null,
+        ];
+        $this->populateInputData($values, $parameters);
 
-        if (isset($parameters['apiClient'])) {
-            $apiClient = $parameters['apiClient'];
-        } else {
-            $error[] = 'apiClient';
-        }
-
-        if (isset($parameters['tokenValue'])) {
-            $token = $parameters['tokenValue'];
-        } else {
-            $error[] = 'token';
-        }
-        if (isset($parameters['secretValue'])) {
-            $secret = $parameters['secretValue'];
-        } else {
-            $error[] = 'secret';
-        }
-
-        if (!empty($error)) {
-            throw new \Exception("Authentication parameters are missing: " . json_encode($error));
-        }
+        list($apiKey, $apiClient, $token, $secret) = array_values($values);
 
         return new TokenAuthentication($apiKey, $apiClient, $token, $secret, $httpVerb, $queryString, $timeDifference);
     }
@@ -93,30 +75,40 @@ class AuthenticationFactory
      * @param string $httpVerb
      * @param string $queryString
      * @param string $timeDifference
-     * @return Authentication
+     * @return AbstractAlgorithm
      * @throws \Exception
      */
     public function createKeyAuth($parameters, $httpVerb, $queryString, $timeDifference)
     {
-        $error = [];
-        $apiKey = null;
-        $apiClient = null;
-        if (isset($parameters['apiKey'])) {
-            $apiKey = $parameters['apiKey'];
-        } else {
-            $error[] = 'apiKey';
-        }
+        $values = [
+            'apiKey' => null,
+            'apiClient' =>null,
+        ];
+        $this->populateInputData($values, $parameters);
 
-        if (isset($parameters['apiClient'])) {
-            $apiClient = $parameters['apiClient'];
-        } else {
-            $error[] = 'apiClient';
+        list($apiKey, $apiClient) = array_values($values);
+
+        return new KeyAuthentication($apiKey, $apiClient, $httpVerb, $queryString, $timeDifference);
+    }
+
+    /**
+     * @param array $structure
+     * @param array $parameters
+     * @throws \Exception
+     */
+    protected function populateInputData(&$structure, $parameters)
+    {
+        $error = [];
+        foreach ($structure as $key => $value) {
+            if (isset($parameters[$key])) {
+                $structure[$key] = $parameters[$key];
+            } else {
+                $error[] = $key;
+            }
         }
 
         if (!empty($error)) {
-            throw new \Exception("Authentication parameters are missing: " . json_encode($error));
+            throw new \Exception("The following authentication parameters are missing: " . implode(' ,', $error));
         }
-
-        return new KeyAuthentication($apiKey, $apiClient, $httpVerb, $queryString, $timeDifference);
     }
 }

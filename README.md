@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/zitec/behat-rest-extension.svg?branch=master)](https://travis-ci.org/zitec/behat-rest-extension)
+
 # Behat Zitec API Extension
 
 ## About

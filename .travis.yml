@@ -1,0 +1,17 @@
+language: php
+
+php:
+  - 7.1
+
+before_install:
+    - sudo apt-get -y install npm
+
+install:
+  - composer install
+  - npm install -g mockserver
+
+# run phunit tests, start mockserver in background and run functional tests
+script:
+  - ./vendor/bin/phpunit tests
+  - MOCK_HEADERS=Authorization,Header mockserver -q -p 9001 -m ./mocks &
+  - cd functional_tests && ../vendor/bin/behat

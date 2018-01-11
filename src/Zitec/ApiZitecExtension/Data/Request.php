@@ -8,6 +8,6 @@ namespace Zitec\ApiZitecExtension\Data;
  * @author Bianca VADEAN bianca.vadean@zitec.com
  * @copyright Copyright (c) Zitec COM
  */
-class Request
+class Request extends \stdClass
 {
 }

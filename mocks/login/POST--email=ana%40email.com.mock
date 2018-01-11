@@ -1,0 +1,8 @@
+HTTP/1.1 400 Bad request
+Content-Type: application/json;
+
+{
+  "error": {
+    "password": "Password should not be empty."
+  }
+}

@@ -1,0 +1,39 @@
+HTTP/1.1 200 OK
+Content-Type: application/json;
+
+{
+  "users": [
+    {
+      "id": 0,
+      "name": "Andrei Popescu",
+      "email": "anrei.popescu@auto.ro",
+      "balance": 1754.3,
+      "accounts": [
+        "savings",
+        "car",
+        "college"
+      ],
+      "active": true,
+      "created_at": "2017-08-31 13:51:30",
+      "account_type": "legal",
+      "company_url": "http://auto.ro",
+      "cardId": "123456",
+      "cnp": "1931130090457"
+    },
+    {
+      "id": 1,
+      "name": "Andrei Pop",
+      "email": "anrei.pop@yahoo.com",
+      "balance": 0.0,
+      "accounts": [],
+      "active": false,
+      "created_at": "2017-08-31 13:51:30",
+      "account_type": "natural",
+      "company_url": null,
+      "cardId": "123456",
+      "cnp": "1980504300323"
+    }
+  ],
+  "count": 2
+}
+
