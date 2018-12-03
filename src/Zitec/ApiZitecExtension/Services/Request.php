@@ -2,7 +2,7 @@
 
 namespace Zitec\ApiZitecExtension\Services;
 
-use Goutte\Client;
+use Symfony\Bundle\FrameworkBundle\Client;
 
 /**
  * Class Request
