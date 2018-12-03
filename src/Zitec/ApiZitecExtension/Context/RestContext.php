@@ -496,8 +496,8 @@ class RestContext extends MinkContext implements RestAwareContext
         }
 
         $baseUrl = $this->getMinkParameter('base_url');
-        $this->request->setHeaders($headers, $this->parameters->getSeenheaders());
-        $this->request->request($baseUrl, $queryString, $this->parameters->getRequestMethod(), $data);
+        // $this->request->setHeaders($headers, $this->parameters->getSeenheaders());
+        $this->request->request($baseUrl, $queryString, $this->parameters->getRequestMethod(), $data, $headers);
     }
 
     /**

@@ -56,10 +56,17 @@ class Response
 
     /**
      * @param string $name
+     * @param bool $caseInsensitive
+     *
      * @return null|string
      */
-    public function getHeader($name)
+    public function getHeader($name, $caseInsensitive = true)
     {
+        $headers = $this->getHeaders();
+        if ($caseInsensitive) {
+            $headers=array_change_key_case($headers, CASE_LOWER);
+            $name = strtolower($name);
+        }
         if (isset($this->headers[$name])) {
             return $this->headers[$name];
         }
@@ -95,7 +102,7 @@ class Response
      * @return bool
      */
     public function contentTypeIs($type) {
-        $contentType = strtolower($this->getHeader('Content-Type'));
+        $contentType = strtolower($this->getHeader('Content-Type', true));
         return stripos($contentType, strtolower($type)) !== false;
     }
 }

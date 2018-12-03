@@ -49,7 +49,7 @@ class Request
      * @param string $requestMethod
      * @param array $data
      */
-    public function request($baseUrl, $queryString, $requestMethod, array $data)
+    public function request($baseUrl, $queryString, $requestMethod, array $data, array $headers)
     {
         if (!empty($data['get'])) {
             $queryString = $queryString . '?' . http_build_query($data['get'], null, '&',
@@ -60,8 +60,11 @@ class Request
         $httpVerb = strtolower($requestMethod);
 
         $files = isset($data['files']) ? $data['files'] : [];
-
-        $this->client->request($requestMethod, $uri, $data[$httpVerb], $files);
+        foreach ($headers as $key => $header) {
+            $headers["HTTP_" . $key] = $header;
+        }
+        $headers['HTTP_Accept'] = 'json';
+        $this->client->request($requestMethod, $uri, $data[$httpVerb], $files, $headers);
     }
 
     /**
