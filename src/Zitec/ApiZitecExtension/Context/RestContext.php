@@ -161,7 +161,7 @@ class RestContext extends MinkContext implements RestAwareContext
     }
 
     /**
-     * @Given /^(?:|I )set the request method to (POST|DELETE|GET|PUT)$/
+     * @Given /^(?:|I )set the request method to (POST|DELETE|GET|PUT|PATCH)$/
      *
      * @param string $method
      */
