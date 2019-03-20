@@ -297,6 +297,48 @@ class RestContextTest extends TestCase
     }
 
     /**
+     * Try to add empty name headers
+     */
+    public function testAddCustomEmptyNameHeaders()
+    {
+        $table = $this->getMockBuilder(TableNode::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $headers = [
+            ['', 'value',],
+        ];
+        $table->expects($this->once())
+            ->method('getRows')
+            ->willReturn($headers);
+
+        $this->restContext->iAddTheFollowingHeaders($table);
+    }
+
+    /**
+     * Try to add empty value headers
+     */
+    public function testAddEmptyValueCustomHeaders()
+    {
+        $table = $this->getMockBuilder(TableNode::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $headers = [
+            ['name', '',],
+        ];
+        $table->expects($this->once())
+            ->method('getRows')
+            ->willReturn($headers);
+        list($headerName, $headerValue) = reset($headers);
+
+        $this->parameters
+            ->expects($this->once())
+            ->method('addHeader')
+            ->with($headerName, $headerValue);
+
+        $this->restContext->iAddTheFollowingHeaders($table);
+    }
+
+    /**
      *  Test the method that resets auth tokens.
      */
     public function testIResetAccessTokens()
