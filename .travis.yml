@@ -12,7 +12,7 @@ before_install:
 
 install:
   - composer install
-  - npm install -g mockserver
+  - npm install -g mockserver@1.6.2
 
 # run phunit tests, start mockserver in background and run functional tests
 script:
