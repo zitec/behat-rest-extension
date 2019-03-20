@@ -191,7 +191,9 @@ class RestContext extends MinkContext implements RestAwareContext
     {
         foreach ($table->getRows() as $row) {
             list($name, $value) = $row;
-            $this->parameters->addHeader($name, $value);
+            if (!empty($name)) {
+                $this->parameters->addHeader($name, $value);
+            }
         }
     }
 
