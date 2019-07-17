@@ -73,7 +73,6 @@ class Parameters
      */
     public function addHeader($name, $value)
     {
-        $this->seenHeaders[] = $name;
         $this->headers[$name] = $value;
     }
 
@@ -125,14 +124,6 @@ class Parameters
         foreach ($headers as $name => $value) {
             $this->addHeader($name, $value);
         }
-    }
-
-    /**
-     * @return array
-     */
-    public function getSeenHeaders()
-    {
-        return array_unique($this->seenHeaders);
     }
 
     /**

@@ -2,7 +2,7 @@
 
 namespace Zitec\ApiZitecExtension\Services;
 
-use Goutte\Client;
+use Symfony\Component\BrowserKit\Client;
 
 /**
  * Class Request
@@ -12,10 +12,11 @@ use Goutte\Client;
  */
 class Request
 {
-    /**
-     * @var Client
-     */
+    /** @var Client */
     protected $client;
+
+    /** @var array */
+    protected $headers;
 
     /**
      * Request constructor.
@@ -25,22 +26,7 @@ class Request
     public function __construct(Client $client)
     {
         $this->client = $client;
-    }
-
-    /**
-     * Cleans up the existing headers and sets the new ones.
-     *
-     * @param array $headers
-     * @param array $seenHeaders
-     */
-    public function setHeaders($headers, $seenHeaders)
-    {
-        foreach ($seenHeaders as $sHeader) {
-            $this->client->removeHeader($sHeader);
-        }
-        foreach ($headers as $name => $value) {
-            $this->client->setHeader($name, $value);
-        }
+        $this->headers = [];
     }
 
     /**
@@ -48,8 +34,9 @@ class Request
      * @param string $queryString
      * @param string $requestMethod
      * @param array $data
+     * @param array $serverParams
      */
-    public function request($baseUrl, $queryString, $requestMethod, array $data)
+    public function request($baseUrl, $queryString, $requestMethod, array $data, array $serverParams = [])
     {
         if (!empty($data['get'])) {
             $queryString = $queryString . '?' . http_build_query($data['get'], null, '&',
@@ -61,7 +48,7 @@ class Request
 
         $files = isset($data['files']) ? $data['files'] : [];
 
-        $this->client->request($requestMethod, $uri, $data[$httpVerb], $files);
+        $this->client->request($requestMethod, $uri, $data[$httpVerb], $files, $serverParams);
     }
 
     /**
