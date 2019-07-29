@@ -25,16 +25,10 @@ class Compare
     public function matchStructure(array $expectedStructure, Response $response)
     {
         $checker = new TypeChecker();
-        $checked = $checker->checkType(
-          $response->getContent()->getParsedContent(),
-          $expectedStructure
-        );
+        $checked = $checker->checkType($response->getContent()->getParsedContent(), $expectedStructure);
         if (!empty($checked)) {
             throw new \Exception(
-              sprintf(
-                "The following values do not match the expected type: %s",
-                json_encode($checked)
-              )
+              sprintf("The following values do not match the expected type: %s", json_encode($checked))
             );
         }
     }
@@ -45,11 +39,11 @@ class Compare
      *
      * @throws \Exception
      */
-    public function matchXMLStructure(string $xsdFile, Response $response)
+    public function matchXMLStructure($xsdFile, Response $response)
     {
         libxml_use_internal_errors(true);
         $xdoc = new \DomDocument();
-        $xdoc->loadXML($response->getRawContent());
+        $xdoc->loadXML($response->getContent()->getRawContent());
         if (!$xdoc->schemaValidate($xsdFile)) {
             $exceptionMessage = '';
             foreach (libxml_get_errors() as $libxmlError) {
@@ -90,10 +84,12 @@ class Compare
     /**
      * @param string $xmlFile
      * @param Response $response
+     *
+     * @throws \Exception
      */
-    public function matchXMLResponse(string $xmlFile, Response $response)
+    public function matchXMLResponse($xmlFile, Response $response)
     {
-        Assert::assertXmlStringEqualsXmlFile($xmlFile, $response->getRawContent());
+        Assert::assertXmlStringEqualsXmlFile($xmlFile, $response->getContent()->getRawContent());
     }
 
     /**
@@ -103,57 +99,51 @@ class Compare
      */
     protected function formatLibxmlError($error)
     {
-        $return = "<br/>\n";
+        $return = "\n";
         switch ($error->level) {
             case LIBXML_ERR_WARNING:
-                $return .= "<b>Warning $error->code</b>: ";
+                $return .= "Warning $error->code: ";
                 break;
             case LIBXML_ERR_ERROR:
-                $return .= "<b>Error $error->code</b>: ";
+                $return .= "Error $error->code: ";
                 break;
             case LIBXML_ERR_FATAL:
-                $return .= "<b>Fatal Error $error->code</b>: ";
+                $return .= "Fatal Error $error->code: ";
                 break;
         }
-
         $return .= trim($error->message);
-        if ($error->file) {
-            $return .= " in <b>$error->file</b>";
-        }
-        $return .= " on line <b>$error->line</b>\n";
 
         return $return;
     }
 
-/**
- * Returns the differences between $array1 and $array2
- *
- * @param array $array1
- * @param array $array2
- *
- * @return array
- */
-private
-function responseDiff($array1, $array2)
-{
-    $difference = [];
-    foreach ($array1 as $key => $value) {
-        if (is_array($value)) {
-            if (!isset($array2[$key]) || !is_array($array2[$key])) {
-                $difference[$key] = $value;
+    /**
+     * Returns the differences between $array1 and $array2
+     *
+     * @param array $array1
+     * @param array $array2
+     *
+     * @return array
+     */
+    private function responseDiff($array1, $array2)
+    {
+        $difference = [];
+        foreach ($array1 as $key => $value) {
+            if (is_array($value)) {
+                if (!isset($array2[$key]) || !is_array($array2[$key])) {
+                    $difference[$key] = $value;
+                } else {
+                    $new_diff = $this->responseDiff($value, $array2[$key]);
+                    if (!empty($new_diff)) {
+                        $difference[$key] = $new_diff;
+                    }
+                }
             } else {
-                $new_diff = $this->responseDiff($value, $array2[$key]);
-                if (!empty($new_diff)) {
-                    $difference[$key] = $new_diff;
+                if (!array_key_exists($key, $array2) || $array2[$key] !== $value) {
+                    $difference[$key] = $value;
                 }
             }
-        } else {
-            if (!array_key_exists($key, $array2) || $array2[$key] !== $value) {
-                $difference[$key] = $value;
-            }
         }
-    }
 
-    return $difference;
-}
+        return $difference;
+    }
 }

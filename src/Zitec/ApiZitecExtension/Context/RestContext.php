@@ -353,9 +353,6 @@ class RestContext extends MinkContext implements RestAwareContext
         if (!isset($this->response)) {
             throw new \Exception("The response is not set yet.");
         }
-        if (empty($this->response->getContentType())) {
-            throw new \Exception('Response content type not set.');
-        }
 
         switch ($this->response->getContentType()) {
             case 'json':
@@ -383,9 +380,6 @@ class RestContext extends MinkContext implements RestAwareContext
     {
         if (!isset($this->response)) {
             throw new \Exception("The response is not set yet.");
-        }
-        if (empty($this->response->getContentType())) {
-            throw new \Exception('Response content type not set.');
         }
 
         switch ($this->response->getContentType()) {

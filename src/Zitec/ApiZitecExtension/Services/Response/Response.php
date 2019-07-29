@@ -88,10 +88,8 @@ class Response
         if ($this->content === null) {
             if ($this->contentTypeIs('json')) {
                 $this->content = new Content\Json($this->rawContent);
-                $this->contentType = 'json';
             } elseif ($this->contentTypeIs('xml')) {
                 $this->content = new Content\Xml($this->rawContent);
-                $this->contentType = 'xml';
             } else {
                 throw new \Exception('Unhandled content type');
             }
@@ -111,17 +109,17 @@ class Response
 
     /**
      * @return string
+     * @throws \Exception
      */
     public function getContentType()
     {
-        return $this->contentType;
-    }
-
-    /**
-     * @return string
-     */
-    public function getRawContent()
-    {
-        return $this->rawContent;
+        switch (get_class($this->content)) {
+            case Content\Json::class:
+                return 'json';
+            case Content\Xml::class:
+                return 'xml';
+            default:
+                throw new \Exception('Response content type not defined.');
+        }
     }
 }
