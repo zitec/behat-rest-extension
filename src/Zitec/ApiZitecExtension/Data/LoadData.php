@@ -221,6 +221,14 @@ class LoadData
     }
 
     /**
+     * @return string
+     */
+    public function getLastDataSet()
+    {
+        return $this->dataSet;
+    }
+
+    /**
      * @param array $data
      * @return array
      */

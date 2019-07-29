@@ -12,10 +12,16 @@ use Zitec\ApiZitecExtension\Services\Response\Content\AbstractContent;
  */
 class Response
 {
+
     /**
      * @var AbstractContent|null
      */
     protected $content;
+
+    /**
+     * @var string
+     */
+    protected $contentType;
 
     /**
      * @var string
@@ -82,8 +88,10 @@ class Response
         if ($this->content === null) {
             if ($this->contentTypeIs('json')) {
                 $this->content = new Content\Json($this->rawContent);
+                $this->contentType = 'json';
             } elseif ($this->contentTypeIs('xml')) {
                 $this->content = new Content\Xml($this->rawContent);
+                $this->contentType = 'xml';
             } else {
                 throw new \Exception('Unhandled content type');
             }
@@ -99,5 +107,21 @@ class Response
     public function contentTypeIs($type) {
         $contentType = strtolower($this->getHeader('Content-Type'));
         return stripos($contentType, strtolower($type)) !== false;
+    }
+
+    /**
+     * @return string
+     */
+    public function getContentType()
+    {
+        return $this->contentType;
+    }
+
+    /**
+     * @return string
+     */
+    public function getRawContent()
+    {
+        return $this->rawContent;
     }
 }

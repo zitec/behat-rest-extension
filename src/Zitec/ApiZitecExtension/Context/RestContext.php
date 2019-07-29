@@ -176,7 +176,7 @@ class RestContext extends MinkContext implements RestAwareContext
      *
      * @param string $file
      *
-     * @throws Exception
+     * @throws \Exception
      */
     public function iLoadDataFromFile($file)
     {
@@ -317,7 +317,7 @@ class RestContext extends MinkContext implements RestAwareContext
 
     /**
      * @Then /^I extract access token from the response$/
-     * 
+     *
      * @throws Exception
      */
     public function extractAccessTokenFromResponse()
@@ -350,11 +350,25 @@ class RestContext extends MinkContext implements RestAwareContext
      */
     public function theResponseMatchTheExpectedResponse($dataSet = null)
     {
-        $expectedResponse = $this->data->getResponseData($dataSet);
-        if (isset($this->response)) {
-            $this->compare->matchResponse($expectedResponse, $this->response);
-        } else {
-            throw new Exception("The response is not set yet.");
+        if (!isset($this->response)) {
+            throw new \Exception("The response is not set yet.");
+        }
+        if (empty($this->response->getContentType())) {
+            throw new \Exception('Response content type not set.');
+        }
+
+        switch ($this->response->getContentType()) {
+            case 'json':
+                $expectedResponse = $this->data->getResponseData($dataSet);
+                $this->compare->matchResponse($expectedResponse, $this->response);
+                break;
+            case 'xml':
+                $filename = $dataSet ?: $this->loader->getLastDataSet();
+                $xmlFile = $this->parameters->root_path . "/features/data/$filename.xml";
+                $this->compare->matchXMLResponse($xmlFile, $this->response);
+                break;
+            default:
+                throw new \Exception('Response content type not supported.');
         }
     }
 
@@ -367,11 +381,25 @@ class RestContext extends MinkContext implements RestAwareContext
      */
     public function theResponseMatchExpectedStructure($dataSet = null)
     {
-        $expectedResponse = $this->data->getResponseData($dataSet);
-        if (isset($this->response)) {
-            $this->compare->matchStructure($expectedResponse, $this->response);
-        } else {
-            throw new Exception("The response is not set yet.");
+        if (!isset($this->response)) {
+            throw new \Exception("The response is not set yet.");
+        }
+        if (empty($this->response->getContentType())) {
+            throw new \Exception('Response content type not set.');
+        }
+
+        switch ($this->response->getContentType()) {
+            case 'json':
+                $expectedResponse = $this->data->getResponseData($dataSet);
+                $this->compare->matchStructure($expectedResponse, $this->response);
+                break;
+            case 'xml':
+                $filename = $dataSet ?: $this->loader->getLastDataSet();
+                $xsdFile = $this->parameters->root_path . "/features/data/$filename.xsd";
+                $this->compare->matchXMLStructure($xsdFile, $this->response);
+                break;
+            default:
+                throw new \Exception('Response content type not supported.');
         }
     }
 
