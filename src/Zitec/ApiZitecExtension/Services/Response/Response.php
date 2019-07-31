@@ -21,11 +21,6 @@ class Response
     /**
      * @var string
      */
-    protected $contentType;
-
-    /**
-     * @var string
-     */
     protected $rawContent;
 
     /**

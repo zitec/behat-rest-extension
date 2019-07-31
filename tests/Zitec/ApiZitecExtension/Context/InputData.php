@@ -57,7 +57,7 @@ class InputData
         'headers_to_remove'        => 'Location, Content-Type',
         'added_request_time'       => '2 seconds',
         'data_for_request'         => [],
-        'data_set'                 => 'dataSet',
+        'dataset'                 => 'dataSet',
         'empty_response_type'      => 'empty',
         'json_response_type'       => 'JSON',
         'auth_params'              => [
