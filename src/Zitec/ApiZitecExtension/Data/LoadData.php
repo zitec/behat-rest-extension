@@ -14,6 +14,7 @@ use Symfony\Component\Yaml\Parser;
  */
 class LoadData
 {
+
     /**
      * @var array
      */
@@ -34,7 +35,7 @@ class LoadData
      *
      * @param string $rootPath
      */
-    public function __construct ($rootPath)
+    public function __construct($rootPath)
     {
         $this->rootPath = $rootPath;
     }
@@ -44,17 +45,16 @@ class LoadData
      *
      * @param string $file
      * @param string $defaultLocale
+     *
      * @return self
      * @throws \Exception
      */
     public function loadData($file, $defaultLocale = "ro_RO")
     {
-        $this->checkFileFormat($file);
         $yaml = new YamlParser(new Parser());
         $fakerGenerator = \Faker\Factory::create($defaultLocale);
         $loader = new NativeLoader($fakerGenerator);
-        $fileInfo = $this->checkFileFormat($file);
-        $data = $yaml->parse($this->createAbsolutePath($fileInfo));
+        $data = $yaml->parse($this->createAbsolutePath($file));
 
         if (array_key_exists('request', $data) && !empty($data['request']['Zitec\ApiZitecExtension\Data\Request'])) {
             $this->data['request'] = $loader->loadData($data['request'])->getObjects();
@@ -73,47 +73,66 @@ class LoadData
     }
 
     /**
+     * Return the absolute path for the file given.
+     *
+     * @param string $file
+     * @param string $format
+     *
+     * @return string $path
+     * @throws \Exception
+     */
+    public function createAbsolutePath($file, $format = 'yml')
+    {
+        $path = '/features/data/';
+        $filename = $this->checkFileFormat($file, $format);
+        switch ($format) {
+            case 'xml':
+            case 'xsd':
+                $path .= 'xml/';
+                break;
+            // YML is the original format, no path suffix required.
+            case 'yml':
+            default:
+                break;
+        }
+
+        $absPath = $this->rootPath.$path.$filename;
+        if (!$absPath) {
+            throw new \Exception("File {$filename} not found in {$absPath}.");
+        }
+
+        return $absPath;
+    }
+
+    /**
      * Check if the yml format was set
      * If not, add the extensions
      *
      * @param string $file
+     * @param string $format
+     *
      * @return string filename
-     * */
-    protected function checkFileFormat ($file)
+     */
+    protected function checkFileFormat($file, $format = 'yml')
     {
         //take file extension
         $extension = pathinfo($file, PATHINFO_EXTENSION);
         //append yml extension
         if (empty($extension)) {
-            $file = $file . '.yml';
+            $file = "$file.$format";
         }
+
         return $file;
-    }
-
-    /**
-     * Return the absolute path for the file given.
-     *
-     * @param string $file
-     * @return string $path
-     * @throws \Exception
-     */
-    protected function createAbsolutePath ($file)
-    {
-        $path = $this->rootPath . '/features/data/' . $file;
-        if (!$path) {
-            throw new \Exception("File {$file} not found in {$path}.");
-        }
-
-        return $path;
     }
 
     /**
      * @param string $requestMethod
      * @param string $dataSet
+     *
      * @return array
      * @throws \Exception
      */
-    public function getDataForRequest ($requestMethod, $dataSet)
+    public function getDataForRequest($requestMethod, $dataSet)
     {
         $requestData = $this->data['request'];
         $requestMethod = strtolower($requestMethod);
@@ -124,11 +143,11 @@ class LoadData
         }
 
         if (!array_key_exists('get', $requestData[$dataSet])) {
-            $data['get'] = array();
+            $data['get'] = [];
         }
 
         if (!array_key_exists('post', $requestData[$dataSet])) {
-            $data['post'] = array();
+            $data['post'] = [];
         }
 
         if (empty($data['get']) && empty($data['post'])) {
@@ -147,17 +166,21 @@ class LoadData
      * Create real path for files and set them under $data['files'] key.
      *
      * @param array $data
+     *
      * @return array
      */
-    private function setFiles (array $data)
+    private function setFiles(array $data)
     {
         $data['files'] = null;
-        array_walk_recursive($data, function ($value, $key) use (&$data) {
-            if (strpos($value, '@') === 0) {
-                $data['files'][$key] = realpath(substr($value, 1));
-                unset($data[$key]);
-            }
-        });
+        array_walk_recursive(
+          $data,
+          function ($value, $key) use (&$data) {
+              if (strpos($value, '@') === 0) {
+                  $data['files'][$key] = realpath(substr($value, 1));
+                  unset($data[$key]);
+              }
+          }
+        );
 
         return $data;
     }
@@ -166,18 +189,22 @@ class LoadData
      * Encode base64 images identified by base64_encode(@/path_to_image).
      *
      * @param array $data
+     *
      * @return array
      */
-    private function encodeImages (array $data)
+    private function encodeImages(array $data)
     {
-        array_walk_recursive($data, function (&$value) {
-           if (strpos($value, 'base64_encode(') === 0) {
-               // Create real path after remove the base64_encode identifiers.
-               $imgPath = realpath(substr(ltrim((rtrim($value, ')')), 'base64_encode('), 1));
-               $binaryImage = fread(fopen($imgPath, 'r'), filesize($imgPath));
-               $value = base64_encode($binaryImage);
-           }
-        });
+        array_walk_recursive(
+          $data,
+          function (&$value) {
+              if (strpos($value, 'base64_encode(') === 0) {
+                  // Create real path after remove the base64_encode identifiers.
+                  $imgPath = realpath(substr(ltrim((rtrim($value, ')')), 'base64_encode('), 1));
+                  $binaryImage = fread(fopen($imgPath, 'r'), filesize($imgPath));
+                  $value = base64_encode($binaryImage);
+              }
+          }
+        );
 
         return $data;
     }
@@ -186,7 +213,7 @@ class LoadData
      * @param string $dataSet
      * @param array $values
      */
-    public function addDataToDataSet ($dataSet, array $values)
+    public function addDataToDataSet($dataSet, array $values)
     {
         $set = array_merge((array)$this->data['request'][$dataSet], $values);
         $this->data['request'][$dataSet] = (object)$set;
@@ -194,10 +221,11 @@ class LoadData
 
     /**
      * @param string $dataSet
+     *
      * @return array
      * @throws \Exception
      */
-    public function getResponseData ($dataSet)
+    public function getResponseData($dataSet)
     {
 
         if ($dataSet == null) {
@@ -215,7 +243,7 @@ class LoadData
     /**
      * @return array
      */
-    public function getData ()
+    public function getData()
     {
         return $this->data;
     }
@@ -230,6 +258,7 @@ class LoadData
 
     /**
      * @param array $data
+     *
      * @return array
      */
     private function processCollections($data)
@@ -239,17 +268,17 @@ class LoadData
                 // set min max
                 preg_match_all("/\((.*?)\)/u", $key, $collectionArgs);
                 $collectionArgs = explode(',', $collectionArgs[1][0]);
-                $infoKey = '__info_collection_' . $collectionArgs[0];
+                $infoKey = '__info_collection_'.$collectionArgs[0];
                 $data[$infoKey] = [
-                    'name' => $collectionArgs[0],
-                    'min' => isset($collectionArgs[1]) ? $collectionArgs[1] : null,
-                    'max' => isset($collectionArgs[2]) ? $collectionArgs[2] : null,
+                  'name' => $collectionArgs[0],
+                  'min' => isset($collectionArgs[1]) ? $collectionArgs[1] : null,
+                  'max' => isset($collectionArgs[2]) ? $collectionArgs[2] : null,
                 ];
                 unset($data[$key]);
-                $key = '__collection_' . $collectionArgs[0];
+                $key = '__collection_'.$collectionArgs[0];
             }
             if (is_array($value)) {
-               $value = $this->processCollections($value);
+                $value = $this->processCollections($value);
             }
             $data[$key] = $value;
         }

@@ -341,7 +341,6 @@ class RestContext extends MinkContext implements RestAwareContext
         }
     }
 
-
     /**
      * @param string|null $dataSet
      * @throws Exception
@@ -361,7 +360,7 @@ class RestContext extends MinkContext implements RestAwareContext
                 break;
             case 'xml':
                 $filename = $dataSet ?: $this->loader->getLastDataSet();
-                $xmlFile = $this->parameters->root_path . "/features/data/$filename.xml";
+                $xmlFile = $this->loader->createAbsolutePath($filename, 'xml');
                 $this->compare->matchXMLResponse($xmlFile, $this->response);
                 break;
             default:
@@ -389,7 +388,7 @@ class RestContext extends MinkContext implements RestAwareContext
                 break;
             case 'xml':
                 $filename = $dataSet ?: $this->loader->getLastDataSet();
-                $xsdFile = $this->parameters->root_path . "/features/data/$filename.xsd";
+                $xsdFile = $this->loader->createAbsolutePath($filename, 'xsd');
                 $this->compare->matchXMLStructure($xsdFile, $this->response);
                 break;
             default:
