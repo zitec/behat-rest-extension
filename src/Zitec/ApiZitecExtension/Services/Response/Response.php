@@ -37,7 +37,7 @@ class Response
     {
 
         foreach ($headers as $key => $header) {
-            $this->headers[strtolower($key)] = reset($header);
+            $this->headers[$key] = reset($header);
         }
         if (strlen($content) === 0) {
             return;
@@ -60,8 +60,10 @@ class Response
     public function getHeader($name)
     {
         $name = strtolower($name);
-        if (isset($this->headers[$name])) {
-            return $this->headers[$name];
+        foreach ($this->headers as $key => $header) {
+            if (strtolower($key) === $name) {
+                return $header;
+            }
         }
 
         return null;
