@@ -32,7 +32,6 @@ class Response
      *
      * @param string $content
      * @param array $headers
-     * @throws \Exception
      */
     public function __construct($content, $headers)
     {
@@ -60,8 +59,11 @@ class Response
      */
     public function getHeader($name)
     {
-        if (isset($this->headers[$name])) {
-            return $this->headers[$name];
+        $name = strtolower($name);
+        foreach ($this->headers as $key => $header) {
+            if (strtolower($key) === $name) {
+                return $header;
+            }
         }
 
         return null;

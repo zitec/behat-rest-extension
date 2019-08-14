@@ -6,6 +6,36 @@ namespace Tests\Zitec\ApiZitecExtension\Context;
 /**
  * Class InputData
  *
+ * @property-read $http_method
+ * @property-read $data_file_name
+ * @property-read $headers
+ * @property-read $auth
+ * @property-read $headers_to_remove
+ * @property-read $added_request_time
+ * @property-read $data_for_request
+ * @property-read $data_set
+ * @property-read $empty_response_type
+ * @property-read $json_response_type
+ * @property-read $auth_params
+ * @property-read $auth_no_secret
+ * @property-read $auth_no_token
+ * @property-read $response_data
+ * @property-read $index_to_save
+ * @property-read $value_to_save
+ * @property-read $name_to_save
+ * @property-read $stored_key
+ * @property-read $dataSetKey
+ * @property-read $stored_value
+ * @property-read $request_with_placeholder
+ * @property-read $request_url
+ * @property-read $response_key
+ * @property-read $table_column
+ * @property-read $location_header
+ * @property-read $headers_token
+ * @property-read $auth_data
+ * @property-read $complete_auth_headers
+ * @property-read $base_url
+ *
  * @author Bianca VADEAN bianca.vadean@zitec.com
  * @copyright Copyright (c) Zitec COM
  */

@@ -5,6 +5,7 @@ namespace Zitec\ApiZitecExtension\Context;
 use Behat\Behat\Hook\Scope\BeforeStepScope;
 use Behat\Gherkin\Node\TableNode;
 use Behat\MinkExtension\Context\MinkContext;
+use Exception;
 use Symfony\Component\BrowserKit\Client;
 use Zitec\ApiZitecExtension\Data\Data;
 use Zitec\ApiZitecExtension\Data\LoadData;
@@ -174,6 +175,8 @@ class RestContext extends MinkContext implements RestAwareContext
      * @Given I load data from file :file
      *
      * @param string $file
+     *
+     * @throws Exception
      */
     public function iLoadDataFromFile($file)
     {
@@ -253,6 +256,8 @@ class RestContext extends MinkContext implements RestAwareContext
      *
      * @param string $queryString
      * @param string|null $dataSet
+     *
+     * @throws Exception
      */
     public function iRequest($queryString, $dataSet = null)
     {
@@ -280,18 +285,18 @@ class RestContext extends MinkContext implements RestAwareContext
      * @Given /^the response is (JSON|XML|empty)$/
      *
      * @param string $responseType
-     * @throws \Exception
+     * @throws Exception
      */
     public function checkResponseType($responseType)
     {
         if (!isset($this->response)) {
-            throw new \Exception("There is no response set yet.");
+            throw new Exception("There is no response set yet.");
         }
         $responseType = strtolower($responseType);
         switch ($responseType) {
             case 'empty':
                 if ($this->response->getContent() !== null) {
-                    throw new \Exception(
+                    throw new Exception(
                         sprintf(
                             "The content of the response is not empty!\n%s",
                             $this->response->getContent()->getRawContent()
@@ -301,10 +306,10 @@ class RestContext extends MinkContext implements RestAwareContext
                 break;
             default:
                 if (!$this->response->contentTypeIs($responseType)) {
-                    throw new \Exception(sprintf('The response is not %s', $responseType));
+                    throw new Exception(sprintf('The response is not %s', $responseType));
                 }
                 if ($this->response->getContent() === null) {
-                    throw new \Exception(sprintf('The response is empty'));
+                    throw new Exception(sprintf('The response is empty'));
                 }
                 break;
         }
@@ -312,6 +317,8 @@ class RestContext extends MinkContext implements RestAwareContext
 
     /**
      * @Then /^I extract access token from the response$/
+     * 
+     * @throws Exception
      */
     public function extractAccessTokenFromResponse()
     {
@@ -319,7 +326,7 @@ class RestContext extends MinkContext implements RestAwareContext
         if (!empty($authParams)) {
             if (isset($authParams['auth_type']) && $authParams['auth_type'] === 'token') {
                 if (!isset($authParams['token']) || !isset($authParams['secret'])) {
-                    throw new \Exception(
+                    throw new Exception(
                         '"token" and "secret" authentication parameters must be set for token authentication type.'
                     );
                 }
@@ -337,7 +344,7 @@ class RestContext extends MinkContext implements RestAwareContext
 
     /**
      * @param string|null $dataSet
-     * @throws \Exception
+     * @throws Exception
      *
      * @Given /^the response match the expected response(?:| from "([^"]*)" dataset)$/
      */
@@ -347,13 +354,13 @@ class RestContext extends MinkContext implements RestAwareContext
         if (isset($this->response)) {
             $this->compare->matchResponse($expectedResponse, $this->response);
         } else {
-            throw new \Exception("The response is not set yet.");
+            throw new Exception("The response is not set yet.");
         }
     }
 
     /**
      * @param string|null $dataSet
-     * @throws \Exception
+     * @throws Exception
      *
      * @Then /^the response match the expected structure(?:| from "([^"]*)" dataset)$/
      * @Then /^each response from the collection match the expected structure(?:| from "([^"]*)" dataset)$/
@@ -364,7 +371,7 @@ class RestContext extends MinkContext implements RestAwareContext
         if (isset($this->response)) {
             $this->compare->matchStructure($expectedResponse, $this->response);
         } else {
-            throw new \Exception("The response is not set yet.");
+            throw new Exception("The response is not set yet.");
         }
     }
 
@@ -373,19 +380,19 @@ class RestContext extends MinkContext implements RestAwareContext
      *
      * @param string $responseKey
      * @param string $name
-     * @throws \Exception
+     * @throws Exception
      *
      * @Given /^I save the "([^"]*)" as "([^"]*)"$/
      */
     public function iSaveTheAs($responseKey, $name)
     {
         if (!isset($this->response)) {
-            throw new \Exception('The response is not set yet.');
+            throw new Exception('The response is not set yet.');
         }
 
         $value = $this->response->getContent()->getItem($responseKey);
         if (!isset($value)) {
-            throw new \Exception('The given key was not found in the response.');
+            throw new Exception('The given key was not found in the response.');
         }
         $this->storage->storeValue($name, $value);
     }
@@ -410,8 +417,8 @@ class RestContext extends MinkContext implements RestAwareContext
 
     /**
      * Set the request parameter in url from the saved response under key $name
-     * In case of multiple parameters in url the response keys will be fund in the TableNode
-     * The request should look like this: /method/%d
+     * In case of multiple parameters in url the response keys will be fund in
+     * the TableNode The request should look like this: /method/%d
      *
      * @param string $request
      * @param string | TableNode $name
@@ -421,6 +428,8 @@ class RestContext extends MinkContext implements RestAwareContext
      * @When I request :request using :varKey
      * @When I request :request with dataset :dataSet using:
      * @When I request :request using:
+     *
+     * @throws \Exception
      */
     public function iRequestUsingWithDataset($request, $name, $dataSet = null)
     {
@@ -442,27 +451,27 @@ class RestContext extends MinkContext implements RestAwareContext
      *  Makes a request on the path given in the location header and checks the response status code.
      *
      * @param int $status
-     * @throws \Exception
+     * @throws Exception
      *
      * @Then I check location header to return :status
      */
     public function checkLocationHeader($status)
     {
         if (!isset($this->response)) {
-            throw new \Exception('The response is not set yet.');
+            throw new Exception('The response is not set yet.');
         }
 
         $locationHeader = $this->response->getHeader('Location');
 
         if (!isset($locationHeader)) {
-            throw new \Exception('No Location header received.');
+            throw new Exception('No Location header received.');
         }
 
         $this->iRequest($locationHeader);
         try {
             $this->assertResponseStatus($status);
-        } catch (\Exception $exception) {
-            throw new \Exception(
+        } catch (Exception $exception) {
+            throw new Exception(
                 'The response status code after request on the Location header invalid. '
                 . $exception->getMessage()
             );
@@ -474,6 +483,8 @@ class RestContext extends MinkContext implements RestAwareContext
      *
      * @param string $queryString
      * @param  $data
+     *
+     * @throws Exception
      */
     protected function doHttpRequest($queryString, $data)
     {
@@ -497,16 +508,19 @@ class RestContext extends MinkContext implements RestAwareContext
             }
         }
 
+        $serverParams = $this->getReformattedHeaderNames($headers);
+
         $baseUrl = $this->getMinkParameter('base_url');
-        $this->request->setHeaders($headers, $this->parameters->getSeenheaders());
-        $this->request->request($baseUrl, $queryString, $this->parameters->getRequestMethod(), $data);
+        $this->request->request($baseUrl, $queryString, $this->parameters->getRequestMethod(), $data, $serverParams);
     }
 
     /**
      * @param $type
      * @param $params
      * @param $queryString
+     *
      * @return AbstractAlgorithm
+     * @throws Exception
      */
     protected function getAuth($type, $params, $queryString)
     {
@@ -520,5 +534,27 @@ class RestContext extends MinkContext implements RestAwareContext
         );
 
         return $auth;
+    }
+
+    /**
+     * Prefix the header names as needed by the browser-kit client.
+     *
+     * @param array $headers
+     *
+     * @return array
+     */
+    protected function getReformattedHeaderNames($headers)
+    {
+        $contentHeaders = array('content_length' => true, 'content_md5' => true, 'content_type' => true);
+
+        $reformattedHeaders = [];
+        foreach ($headers as $headerName => $value) {
+            if (!isset($contentHeaders[$headerName])) {
+                $headerName = 'HTTP_'.$headerName;
+            }
+            $reformattedHeaders[$headerName] = $value;
+        }
+
+        return $reformattedHeaders;
     }
 }
