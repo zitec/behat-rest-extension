@@ -549,7 +549,7 @@ class RestContext extends MinkContext implements RestAwareContext
 
         $reformattedHeaders = [];
         foreach ($headers as $headerName => $value) {
-            if (!isset($contentHeaders[$headerName])) {
+            if (!isset($contentHeaders[strtolower(str_replace('-', '_', $headerName))])) {
                 $headerName = 'HTTP_'.$headerName;
             }
             $reformattedHeaders[$headerName] = $value;
