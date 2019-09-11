@@ -1414,17 +1414,6 @@ class RestContextTest extends TestCase
           ->with('base_url')
           ->willReturn($baseUrl);
 
-        $seenHeaders = $inputData->headers_token;
-
-        $this->parameters->expects($this->once())
-          ->method('getSeenHeaders')
-          ->willReturn($seenHeaders);
-        $completeHeaders = $inputData->complete_auth_headers;
-
-        $request->expects($this->once())
-          ->method('setHeaders')
-          ->with($completeHeaders, $seenHeaders);
-
         $data = [];
         $requestMethod = $inputData->request_method;
         $request->expects($this->once())
@@ -1471,14 +1460,6 @@ class RestContextTest extends TestCase
           ->method('getMinkParameter')
           ->with('base_url')
           ->willReturn($baseUrl);
-
-        $this->parameters->expects($this->once())
-          ->method('getSeenHeaders')
-          ->willReturn($headers);
-
-        $request->expects($this->once())
-          ->method('setHeaders')
-          ->with($headers, $headers);
 
         $data = [];
         $queryString = '/';
