@@ -353,6 +353,24 @@ class RestContext extends MinkContext implements RestAwareContext
      * @param string|null $dataSet
      * @throws Exception
      *
+     * @Given /^the response content match the expected response(?:| from "([^"]*)" dataset)$/
+     */
+    public function theResponseContentMatchesTheExpectedContent($dataSet = null)
+    {
+        $response = $this->storage->getLastResponse();
+        if (!isset($response)) {
+            throw new \Exception("The response is not set yet.");
+        }
+
+        $filename = $dataSet ?: $this->loader->getLastDataSet();
+        $txtFile = $this->loader->createAbsolutePath($filename, 'txt');
+        $this->compare->matchRawContent($txtFile, $response);
+    }
+
+    /**
+     * @param string|null $dataSet
+     * @throws Exception
+     *
      * @Given /^the response match the expected response(?:| from "([^"]*)" dataset)$/
      */
     public function theResponseMatchTheExpectedResponse($dataSet = null)

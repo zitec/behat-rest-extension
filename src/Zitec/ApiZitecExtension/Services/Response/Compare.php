@@ -93,6 +93,17 @@ class Compare
     }
 
     /**
+     * @param $txtFile
+     * @param Response $response
+     *
+     * @throws \Exception
+     */
+    public function matchRawContent($txtFile, Response $response)
+    {
+        Assert::assertEquals(file_get_contents($txtFile), $response->getContent()->getRawContent());
+    }
+
+    /**
      * @param $error
      *
      * @return string

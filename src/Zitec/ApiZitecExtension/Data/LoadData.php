@@ -86,9 +86,10 @@ class LoadData
         $path = '/features/data/';
         $filename = $this->checkFileFormat($file, $format);
         switch ($format) {
+            case 'txt':
             case 'xml':
             case 'xsd':
-                $path .= 'xml/';
+                $path .= "$format/";
                 break;
             // YML is the original format, no path suffix required.
             case 'yml':
