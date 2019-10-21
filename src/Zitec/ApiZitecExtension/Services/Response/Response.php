@@ -12,6 +12,7 @@ use Zitec\ApiZitecExtension\Services\Response\Content\AbstractContent;
  */
 class Response
 {
+
     /**
      * @var AbstractContent|null
      */
@@ -99,5 +100,21 @@ class Response
     public function contentTypeIs($type) {
         $contentType = strtolower($this->getHeader('Content-Type'));
         return stripos($contentType, strtolower($type)) !== false;
+    }
+
+    /**
+     * @return string
+     * @throws \Exception
+     */
+    public function getContentType()
+    {
+        switch (get_class($this->content)) {
+            case Content\Json::class:
+                return 'json';
+            case Content\Xml::class:
+                return 'xml';
+            default:
+                throw new \Exception('Response content type not defined.');
+        }
     }
 }

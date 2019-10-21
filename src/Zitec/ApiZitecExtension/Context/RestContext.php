@@ -53,6 +53,7 @@ class RestContext extends MinkContext implements RestAwareContext
 
     /**
      * @var Response
+     * @deprecated Use the storage object to getLastResponse.
      */
     protected $response;
 
@@ -176,7 +177,7 @@ class RestContext extends MinkContext implements RestAwareContext
      *
      * @param string $file
      *
-     * @throws Exception
+     * @throws \Exception
      */
     public function iLoadDataFromFile($file)
     {
@@ -271,14 +272,15 @@ class RestContext extends MinkContext implements RestAwareContext
         $content = $this->getSession()->getPage()->getContent();
         $headers = $this->getSession()->getResponseHeaders();
 
-        $this->response = new Response($content, $headers);
+        $response = new Response($content, $headers);
+        $this->storage->setLastResponse($response);
 
         /** For debugging purposes print the response content. */
         if ($this->debug) {
             echo $content;
         }
 
-        $this->storage->setLastResponse($this->response);
+        $this->response = $response;
     }
 
     /**
@@ -289,27 +291,28 @@ class RestContext extends MinkContext implements RestAwareContext
      */
     public function checkResponseType($responseType)
     {
-        if (!isset($this->response)) {
-            throw new Exception("There is no response set yet.");
+        $response = $this->storage->getLastResponse();
+        if (!isset($response)) {
+            throw new \Exception("There is no response set yet.");
         }
         $responseType = strtolower($responseType);
         switch ($responseType) {
             case 'empty':
-                if ($this->response->getContent() !== null) {
-                    throw new Exception(
+                if ($response->getContent() !== null) {
+                    throw new \Exception(
                         sprintf(
                             "The content of the response is not empty!\n%s",
-                            $this->response->getContent()->getRawContent()
+                            $response->getContent()->getRawContent()
                         )
                     );
                 }
                 break;
             default:
-                if (!$this->response->contentTypeIs($responseType)) {
-                    throw new Exception(sprintf('The response is not %s', $responseType));
+                if (!$response->contentTypeIs($responseType)) {
+                    throw new \Exception(sprintf('The response is not %s', $responseType));
                 }
-                if ($this->response->getContent() === null) {
-                    throw new Exception(sprintf('The response is empty'));
+                if ($response->getContent() === null) {
+                    throw new \Exception(sprintf('The response is empty'));
                 }
                 break;
         }
@@ -317,11 +320,16 @@ class RestContext extends MinkContext implements RestAwareContext
 
     /**
      * @Then /^I extract access token from the response$/
-     * 
-     * @throws Exception
+     *
+     * @throws \Exception
      */
     public function extractAccessTokenFromResponse()
     {
+        $response = $this->storage->getLastResponse();
+        if (!isset($response)) {
+            throw new \Exception("The response is not set yet.");
+        }
+
         $authParams = $this->parameters->getAuthentication();
         if (!empty($authParams)) {
             if (isset($authParams['auth_type']) && $authParams['auth_type'] === 'token') {
@@ -332,8 +340,8 @@ class RestContext extends MinkContext implements RestAwareContext
                 }
                 $tokenName = $authParams['token'];
                 $secretName = $authParams['secret'];
-                $token = $this->response->getContent()->getItem($tokenName);
-                $secret = $this->response->getContent()->getItem($secretName);
+                $token = $response->getContent()->getItem($tokenName);
+                $secret = $response->getContent()->getItem($secretName);
                 $authParams['tokenValue'] = $token;
                 $authParams['secretValue'] = $secret;
                 $this->parameters->setAuthentication($authParams);
@@ -341,6 +349,23 @@ class RestContext extends MinkContext implements RestAwareContext
         }
     }
 
+    /**
+     * @param string|null $dataSet
+     * @throws Exception
+     *
+     * @Given /^the response content match the expected response(?:| from "([^"]*)" dataset)$/
+     */
+    public function theResponseContentMatchesTheExpectedContent($dataSet = null)
+    {
+        $response = $this->storage->getLastResponse();
+        if (!isset($response)) {
+            throw new \Exception("The response is not set yet.");
+        }
+
+        $filename = $dataSet ?: $this->loader->getLastDataSet();
+        $txtFile = $this->loader->createAbsolutePath($filename, 'txt');
+        $this->compare->matchRawContent($txtFile, $response);
+    }
 
     /**
      * @param string|null $dataSet
@@ -350,11 +375,23 @@ class RestContext extends MinkContext implements RestAwareContext
      */
     public function theResponseMatchTheExpectedResponse($dataSet = null)
     {
-        $expectedResponse = $this->data->getResponseData($dataSet);
-        if (isset($this->response)) {
-            $this->compare->matchResponse($expectedResponse, $this->response);
-        } else {
-            throw new Exception("The response is not set yet.");
+        $response = $this->storage->getLastResponse();
+        if (!isset($response)) {
+            throw new \Exception("The response is not set yet.");
+        }
+
+        switch ($response->getContentType()) {
+            case 'json':
+                $expectedResponse = $this->data->getResponseData($dataSet);
+                $this->compare->matchResponse($expectedResponse, $response);
+                break;
+            case 'xml':
+                $filename = $dataSet ?: $this->loader->getLastDataSet();
+                $xmlFile = $this->loader->createAbsolutePath($filename, 'xml');
+                $this->compare->matchXMLResponse($xmlFile, $response);
+                break;
+            default:
+                throw new \Exception('Response content type not supported.');
         }
     }
 
@@ -367,11 +404,23 @@ class RestContext extends MinkContext implements RestAwareContext
      */
     public function theResponseMatchExpectedStructure($dataSet = null)
     {
-        $expectedResponse = $this->data->getResponseData($dataSet);
-        if (isset($this->response)) {
-            $this->compare->matchStructure($expectedResponse, $this->response);
-        } else {
-            throw new Exception("The response is not set yet.");
+        $response = $this->storage->getLastResponse();
+        if (!isset($response)) {
+            throw new \Exception("The response is not set yet.");
+        }
+
+        switch ($response->getContentType()) {
+            case 'json':
+                $expectedResponse = $this->data->getResponseData($dataSet);
+                $this->compare->matchStructure($expectedResponse, $response);
+                break;
+            case 'xml':
+                $filename = $dataSet ?: $this->loader->getLastDataSet();
+                $xsdFile = $this->loader->createAbsolutePath($filename, 'xsd');
+                $this->compare->matchXMLStructure($xsdFile, $response);
+                break;
+            default:
+                throw new \Exception('Response content type not supported.');
         }
     }
 
@@ -386,11 +435,13 @@ class RestContext extends MinkContext implements RestAwareContext
      */
     public function iSaveTheAs($responseKey, $name)
     {
-        if (!isset($this->response)) {
-            throw new Exception('The response is not set yet.');
+        $response = $this->storage->getLastResponse();
+        if (!isset($response)) {
+            throw new \Exception("The response is not set yet.");
         }
 
-        $value = $this->response->getContent()->getItem($responseKey);
+
+        $value = $response->getContent()->getItem($responseKey);
         if (!isset($value)) {
             throw new Exception('The given key was not found in the response.');
         }
@@ -457,11 +508,13 @@ class RestContext extends MinkContext implements RestAwareContext
      */
     public function checkLocationHeader($status)
     {
-        if (!isset($this->response)) {
-            throw new Exception('The response is not set yet.');
+        $response = $this->storage->getLastResponse();
+        if (!isset($response)) {
+            throw new \Exception("The response is not set yet.");
         }
 
-        $locationHeader = $this->response->getHeader('Location');
+
+        $locationHeader = $response->getHeader('Location');
 
         if (!isset($locationHeader)) {
             throw new Exception('No Location header received.');
