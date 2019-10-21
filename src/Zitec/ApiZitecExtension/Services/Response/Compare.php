@@ -3,6 +3,7 @@
 namespace Zitec\ApiZitecExtension\Services\Response;
 
 use PHPUnit\Framework\Assert;
+use Zitec\ApiZitecExtension\Exception\CompareException;
 use Zitec\ApiZitecExtension\Util\TypeChecker;
 
 /**
@@ -27,7 +28,7 @@ class Compare
         $checker = new TypeChecker();
         $checked = $checker->checkType($response->getContent()->getParsedContent(), $expectedStructure);
         if (!empty($checked)) {
-            throw new \Exception(
+            throw new CompareException(
               sprintf("The following values do not match the expected type: %s", json_encode($checked))
             );
         }
@@ -49,7 +50,7 @@ class Compare
             foreach (libxml_get_errors() as $libxmlError) {
                 $exceptionMessage .= $this->formatLibxmlError($libxmlError);
             }
-            throw new \Exception(
+            throw new CompareException(
               "Response does not match $xsdFile schema: $exceptionMessage"
             );
         }
@@ -77,7 +78,7 @@ class Compare
               json_encode($differences)
             );
 
-            throw new \Exception($message);
+            throw new \CompareException($message);
         }
     }
 
@@ -100,7 +101,9 @@ class Compare
      */
     public function matchRawContent($txtFile, Response $response)
     {
-        Assert::assertEquals(file_get_contents($txtFile), $response->getContent()->getRawContent());
+        if (file_get_contents($txtFile) != $response->getContent()->getRawContent()) {
+            throw new CompareException('Raw response content does not match contents of file' . $txtFile);
+        }
     }
 
     /**
