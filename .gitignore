@@ -3,4 +3,7 @@ vendor
 .idea
 nbproject
 bin
+automation
 composer.lock
+phpunit.xml
+.phpunit.result.cache
