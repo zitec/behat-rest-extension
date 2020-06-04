@@ -12,6 +12,7 @@ use Behat\Mink\Mink;
 use Behat\Mink\Session;
 use Behat\Testwork\Environment\Environment;
 use Goutte\Client;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Zitec\ApiZitecExtension\Context\RestContext;
 use Zitec\ApiZitecExtension\Data\Data;
@@ -38,27 +39,27 @@ class RestContextTest extends TestCase
     protected $restContext;
 
     /**
-     * @var \PHPUnit_Framework_MockObject_MockObject
+     * @var MockObject
      */
     protected $mink;
 
     /**
-     * @var \PHPUnit_Framework_MockObject_MockObject
+     * @var MockObject
      */
     protected $parameters;
 
     /**
-     * @var \PHPUnit_Framework_MockObject_MockObject
+     * @var MockObject
      */
     protected $compare;
 
     /**
-     * @var \PHPUnit_Framework_MockObject_MockObject
+     * @var MockObject
      */
     protected $storage;
 
     /**
-     * @var \PHPUnit_Framework_MockObject_MockObject
+     * @var MockObject
      */
     protected $data;
 
@@ -66,7 +67,7 @@ class RestContextTest extends TestCase
      * Sets up the needed properties.
      * Runs before each test is executed.
      */
-    public function setUp()
+    public function setUp(): void
     {
         $this->restContext = $this->setupRestContext();
         $this->mink = $this->getMockBuilder(Mink::class)
@@ -207,7 +208,6 @@ class RestContextTest extends TestCase
         // Cannot create mock object because BeforeStepScope is final class
         $scope = new BeforeStepScope($env, $featureNode, $stepNode);
         $this->restContext->prepare($scope);
-        $this->assertAttributeInstanceOf(Request::class, 'request', $this->restContext);
     }
 
     /**
