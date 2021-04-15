@@ -37,7 +37,7 @@ class Response
     {
 
         foreach ($headers as $key => $header) {
-            $this->headers[$key] = reset($header);
+            $this->headers[$key] = is_array($header) ? reset($header) : $header;    
         }
         if (strlen($content) === 0) {
             return;
