@@ -123,18 +123,9 @@ class LoadData
             throw new \Exception("Dataset \"{$dataSet}\" not found in request section from the data file.");
         }
 
-        if (!array_key_exists('get', $requestData[$dataSet])) {
-            $data['get'] = array();
-        }
+        $requestDataSet = (array)$requestData[$dataSet];
+        $data[$requestMethod] = $requestDataSet;
 
-        if (!array_key_exists('post', $requestData[$dataSet])) {
-            $data['post'] = array();
-        }
-
-        if (empty($data['get']) && empty($data['post'])) {
-            $requestDataSet = (array)$requestData[$dataSet];
-            $data[$requestMethod] = $requestDataSet;
-        }
         // Set files for request.
         $data = $this->setFiles($data);
         // Encode base64 images.
